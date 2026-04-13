@@ -59,7 +59,9 @@ def main(args):
                 all_dfs.append(pd.read_csv(file_path, index_col='Unnamed: 0'))
         train_data = pd.concat(all_dfs)
     else:
-        train_data = pd.read_csv(args.train_dataset, index_col='Unnamed: 0')
+        train_data = pd.read_csv(args.train_dataset)
+        if 'Unnamed: 0' in train_data.columns:
+            train_data = train_data.set_index('Unnamed: 0')
     dataset = {
         'train': train_data,
         'test': eval_data,
