@@ -3,14 +3,11 @@ import sys
 import torch.nn.functional as F
 import numpy as np
 
-current_dir = os.path.dirname(__file__)  # Папка, где лежит текущий скрипт
-external_code_path = os.path.abspath(os.path.join(current_dir, '..', '..', 'external_code', 'verslibre', 'py'))
-sys.path.append(external_code_path)
 from poetry.phonetic import Accents
 from generative_poetry.metre_classifier import ErrorsTable, MetreClassifier, \
                 PatternAnalyzer, StressPredictorAdapter, Markup
 
-from rhyme_metric import scheme_map_dict
+from .rhyme_metric import scheme_map_dict
 from util import filter_lines
 
 

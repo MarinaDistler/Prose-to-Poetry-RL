@@ -125,11 +125,11 @@ if __name__ == "__main__":
 
     parser.add_argument('--train_mode', type=str, default='sft', choices=['sft', 'grpo'], help='The used training mode')
 
-    parser.add_argument('--rhyme_coef', type=float, default=0., help='Rhyme score coefficient in rl metric')
-    parser.add_argument('--meter_coef', type=float, default=0., help='Meter score coefficient in rl metric')
-    parser.add_argument('--len_coef', type=float, default=0., help='Len score coefficient in rl metric')
-    parser.add_argument('--sem_coef', type=float, default=0., help='Semantic score coefficient in rl metric')
-    parser.add_argument('--num_generations', type=float, default=0., help='Number of generations in GRPO')
+    parser.add_argument('--rhyme_coef', type=float, default=0.3, help='Rhyme score coefficient in rl metric')
+    parser.add_argument('--meter_coef', type=float, default=0.2, help='Meter score coefficient in rl metric')
+    parser.add_argument('--len_coef', type=float, default=0.1, help='Len score coefficient in rl metric')
+    parser.add_argument('--sem_coef', type=float, default=0.4, help='Semantic score coefficient in rl metric')
+    parser.add_argument('--num_generations', type=int, default=5, help='Number of generations in GRPO')
 
     args, unknown1 = parser.parse_known_args()
 

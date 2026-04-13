@@ -7,7 +7,6 @@ from trl import SFTTrainer, SFTConfig
 from datetime import datetime
 
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from util import print_options, start_tensorboard
 from metrics import make_metric_fn
 from trainer_callback import ChatGenerationCallback
