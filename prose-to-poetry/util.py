@@ -3,11 +3,12 @@ import random
 import numpy as np
 import typing as tp
 import os
-import wandb
 import shutil
 import re
 from transformers import TrainerCallback
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
+from datetime import datetime
 from tqdm import tqdm
 import ast
 from torch.amp import autocast
@@ -19,6 +20,12 @@ def clean_responses(responses):
         responses[i] = re.sub(r"<rhyme[AB]>.*?</rhyme[AB]>", "", responses[i])
         responses[i] = re.sub(r'<(?:[sS]\d+|count\d+)>', '', responses[i])
     return responses
+
+def filter_lines(lines):
+    return [line.strip() for line in lines if any(ch.isalpha() for ch in line)]
+
+def text_to_lines(text):
+    return [line.strip() for line in text.split('\n') if any(ch.isalpha() for ch in line)]
 
 def print_options(opt, parser):
     message = ''
@@ -43,22 +50,19 @@ def seed_everything(seed: int = 1729) -> None:
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
 
-def start_wandb(name, project, config=None):
-    wandb.login(key=os.environ['WB_TOKEN'].strip(), relogin=True)
-    entity = os.environ.get('WANDB_ENTITY', None)
-    if entity is None:
-        wandb.init(
-            project=project,
-            name=name,
-            config=config
-        )
-    else:
-        wandb.init(
-            project=project,
-            name=name,
-            config=config,
-            entity=entity
-        )
+
+def start_tensorboard(name, project, config=None, log_dir="runs"):
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    run_name = f"{project}/{name}_{timestamp}"
+    
+    log_dir = os.path.join(log_dir, run_name)
+    writer = SummaryWriter(log_dir=log_dir)
+    
+    if config is not None:
+        for key, value in config.items():
+            writer.add_text(f"config/{key}", str(value))
+    
+    return writer, log_dir
 
 
 

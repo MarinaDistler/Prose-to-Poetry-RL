@@ -9,18 +9,8 @@ import numpy as np
 bertscore = load("bertscore")
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from util import print_options
+from util import print_options, text_to_lines
 from metrics import check_rhyme_scheme, check_meter
-
-def filter_lines(text):
-    lines = []
-    for line in text.split('\n'):
-        line = line.strip()
-        for ch in line:
-            if ch.isalpha():
-                lines.append(line)
-                break
-    return lines
     
 def check_len(lines):
     if len(lines) == 4 or len(lines) == 8:
@@ -35,7 +25,7 @@ def eval_poetry(inputs, outputs):
         meter_scores = []
         len_scores = []
         for i, output in tqdm(enumerate(outputs_)):
-            lines = filter_lines(output)
+            lines = text_to_lines(output)
             len_scores.append(check_len(lines))
             lines = lines[:8]
             rhyme_scores.append(check_rhyme_scheme(lines, inputs.iloc[i]['rhyme_scheme']))

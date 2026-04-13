@@ -3,16 +3,18 @@ import torch
 from peft import PeftModel
 import os
 import re
+from trl import AutoModelForCausalLMWithValueHead
 
 from promts import get_train_prompt, get_prompt, system_instruction, system_instruction_generate
 from util import clean_responses
 
 class BaseModel:
-    def __init__(self, model_name, path, quantization=False, generate=False, markup='stanzas'):
+    def __init__(self, model_name, path, quantization=False, generate=False, markup='stanzas', train_mode='sft'):
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.tokenizer.padding_side = "left"
         self.quantization = quantization
         self.generate = generate
+        self.train_mode = train_mode
         if quantization: 
             bnb_config = BitsAndBytesConfig(
                 load_in_4bit=True,
@@ -33,11 +35,20 @@ class BaseModel:
         if path != '':
             self.model = PeftModel.from_pretrained(self.model, path)
             self.model.enable_adapter_layers()
+
+        if train_mode == "ppo":
+            self.model = AutoModelForCausalLMWithValueHead.from_pretrained(self.model)
+    
         self.model.cuda()
 
     def save_for_inference(self, path):
-        self.model = self.model.merge_and_unload().to(torch.bfloat16)
-        self.model.save_pretrained(os.path.join(path, 'merged'), safe_serialization=True)
+        if self.train_mode == "ppo":
+            base_model = self.model.pretrained_model
+        else:
+            base_model = self.model
+
+        base_model = base_model.merge_and_unload().to(torch.bfloat16)
+        base_model.save_pretrained(os.path.join(path, 'merged'), safe_serialization=True)
 
     def load_for_inference(self, path):
         self.model = AutoModelForCausalLM.from_pretrained(
@@ -87,13 +98,13 @@ class BaseModel:
         return response
 
 class ModelQwen(BaseModel):
-    def __init__(self, quantization=False, path='', generate=False, markup='stanzas'):
+    def __init__(self, quantization=False, path='', generate=False, markup='stanzas', train_mode='sft'):
         super().__init__(
             'Qwen/Qwen2.5-3B-Instruct', path, 
-            quantization, generate, markup=markup)
+            quantization, generate, markup=markup, train_mode=train_mode)
 
 class ModelTLite(BaseModel):
-    def __init__(self, quantization=False, path='', generate=False, markup='stanzas'):
+    def __init__(self, quantization=False, path='', generate=False, markup='stanzas', train_mode='sft'):
         super().__init__(
             "t-tech/T-lite-it-1.0", path, quantization, 
-            generate, markup=markup)
+            generate, markup=markup, train_mode=train_mode)

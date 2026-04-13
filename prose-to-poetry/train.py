@@ -1,135 +1,39 @@
 # Импорт библиотек
-import os, torch, wandb, sys
+import os, torch, sys
 import argparse
 from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    BitsAndBytesConfig,
-    HfArgumentParser,
-    TrainingArguments,
-    pipeline,
-    logging,
     DataCollatorForSeq2Seq
 )
 from peft import (
     LoraConfig,
-    PeftModel,
-    prepare_model_for_kbit_training,
-    get_peft_model,
 )
-from peft import get_peft_model_state_dict
-from trl import SFTTrainer, setup_chat_format, SFTConfig
+from trl import SFTTrainer, SFTConfig
 from datasets import Dataset
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
+from torch.utils.data import DataLoader
 
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from models import ModelTLite, ModelQwen
 from promts import format_chat_template 
-from util import print_options, seed_everything, start_wandb
-from metrics import make_metric_fn
+from util import print_options, seed_everything, start_tensorboard
+from metrics import make_metric_fn, encode_sent
 from trainer_callback import ChatGenerationCallback
+from train_rl import train_grpo
+from train_sft import train_sft
 
-class TrainDataCollator:
-    def __init__(self, tokenizer, model):
-        self.tokenizer = tokenizer
-        self.pad = DataCollatorForSeq2Seq(
-            tokenizer=tokenizer,
-            model=model,
-            label_pad_token_id=-100,  # Маскируем паддинг
-            pad_to_multiple_of=8  # Выравниваем длину батча до кратности 8
-        )
-
-    def __call__(self, features):
-        # Скопируем input_ids в labels до паддинга
-        for feature in features:
-            feature["labels"] = feature["input_ids"].copy()
-        
-        # Теперь можно паддить
-        batch = self.pad(features)
-        return batch
-
-def train(model, tokenizer, datasets, peft_config, clean_eval_data, args):
-    checkpoint = None if args.checkpoint == '' else args.checkpoint
-    args.name_run = args.name_run if args.name_run != '' else args.model
-    if checkpoint is not None:
-        print(f'Use checkpoint {checkpoint}')
-        run_name = f"{args.name_run}-from-{checkpoint}"
-    else:
-        run_name = f"{args.name_run}-{datetime.now().strftime('%m-%d-%H-%M')}"
-    output_dir = os.path.join(args.output_dir, run_name + ('-pretrain' if args.pretrain else ''))
-    config = vars(args)
-    project = 'Poetry-pretrain' if args.pretrain else 'Poetry'
-    start_wandb(
-        run_name, project=project, 
-        config={key: config[key] for key in set(config.keys()) - {'name_run'}}
-    )
-    print_options(args, None)
-
-    if args.model == 't-lite':
-        fact_bach_size = 4
-    else:
-        fact_bach_size = 8
-
-    training_arguments = SFTConfig(
-        output_dir=output_dir,
-        per_device_train_batch_size=fact_bach_size,
-        per_device_eval_batch_size=fact_bach_size,
-        gradient_accumulation_steps=args.batch_size // fact_bach_size,
-        optim="paged_adamw_32bit",
-        num_train_epochs=args.epochs,
-        eval_strategy='steps',
-        eval_steps=args.save_steps // args.batch_size,
-        logging_steps=args.log_steps // args.batch_size,
-        warmup_steps=args.warmup_steps,
-        logging_strategy="steps",
-        learning_rate=args.lr,
-        fp16=False,
-        bf16=True,
-        group_by_length=True,
-        report_to="wandb",
-        save_strategy='steps',
-        save_steps=args.save_steps // args.batch_size,              # Сохранять каждые 500 шагов
-        save_total_limit=10 if args.pretrain else 2,          # Макс. число чекпоинтов (старые удаляются)
-        load_best_model_at_end=True, # Загружать лучшую модель в конце
-        metric_for_best_model="eval_loss",  # Критерий выбора лучшей модели
-        max_seq_length=512,
-        packing= False,
-    )
-
-    data_collator = TrainDataCollator(
-        tokenizer=tokenizer,
-        model=model,
-    )
-
-    callbacks = [ChatGenerationCallback(
-        tokenizer, clean_eval_data, output_dir, batch_size=fact_bach_size,
-        compute_metrics=make_metric_fn(), generate=args.pretrain,
-    )]
-
-    trainer = SFTTrainer(
-        model=model,
-        processing_class=tokenizer,
-        train_dataset=datasets["train"],
-        eval_dataset=datasets["test"],
-        peft_config=peft_config, # сам адаптер, который создали ранее
-        #dataset_text_field="chat",
-        data_collator=data_collator, # был импортирован
-        args=training_arguments,
-        callbacks=callbacks,
-    )
-    trainer.train(resume_from_checkpoint=checkpoint)
-    return trainer
 
 def main(args):
     seed_everything()
 
     if args.model == 't-lite':
-        model = ModelTLite(quantization=True, path=args.from_pretrain, markup=args.markup)
+        model = ModelTLite(quantization=True, path=args.from_pretrain, 
+                           markup=args.markup, train_mode=args.train_mode)
     elif args.model == 'qwen':
-        model = ModelQwen(quantization=True, path=args.from_pretrain, markup=args.markup)
+        model = ModelQwen(quantization=True, path=args.from_pretrain, 
+                          markup=args.markup, train_mode=args.train_mode)
     model.model.train()
 
     # LoRA config / адаптер 
@@ -161,25 +65,44 @@ def main(args):
         'test': eval_data,
     }
 
-    format_chat_template_ = lambda row: format_chat_template(row, model.tokenizer, args.pretrain, markup=args.markup)
+    markup = args.markup if args.train_mode == 'sft' else None
+
+    format_chat_template_ = lambda row: format_chat_template(row, model.tokenizer, args.pretrain, markup=markup)
     dataset['train'] = dataset['train'].apply(
         format_chat_template_, axis=1
     )
     dataset['test'] = dataset['test'].apply(
         format_chat_template_, axis=1
     )
-    dataset = {
-        'train': Dataset.from_pandas(dataset['train'][['text']]),
-        'test': Dataset.from_pandas(dataset['test'][['text']]),
-    }
+    if args.train_mode == 'sft':
+        dataset = {
+            'train': Dataset.from_pandas(dataset['train'][['text']]),
+            'test': Dataset.from_pandas(dataset['test'][['text']]),
+        }
+    elif args.train_mode == 'ppo':
+        dataset['train']['input_emb'] = encode_sent(dataset['train']['input']).apply(lambda x: x.tolist())
+        dataset['test']['input_emb'] = encode_sent(dataset['test']['input']).apply(lambda x: x.tolist())
+        dataset = {
+            'train': Dataset.from_pandas(dataset['train'][['text', 'input_emb', 'rhyme_scheme', 'meter']]),
+            'test': Dataset.from_pandas(dataset['test'][['text', 'input_emb', 'rhyme_scheme', 'meter']]),
+        }
 
-    trainer = train(
-        model.model, 
-        model.tokenizer, dataset, 
-        peft_config, 
-        eval_data[~eval_data['meter'].isin(['dolnik2', 'dolnik3'])].iloc[:20], 
-        args
-    )
+    if args.train_mode == "sft":
+        trainer = train_sft(
+            model.model, 
+            model.tokenizer, dataset, 
+            peft_config, 
+            eval_data[~eval_data['meter'].isin(['dolnik2', 'dolnik3'])].iloc[:20], 
+            args
+        )
+    elif args.train_mode == "ppo":
+        trainer = train_grpo(
+            model.model, 
+            model.tokenizer, dataset, 
+            peft_config, 
+            args
+        )
+    
 
 
 if __name__ == "__main__":
@@ -199,6 +122,14 @@ if __name__ == "__main__":
     parser.add_argument('--pretrain', action='store_true', help='If set, enables poetry-only pretraining mode')
     parser.add_argument('--from_pretrain', type=str, default='', help='Path to pretrained model checkpoint')
     parser.add_argument('--markup', type=str, default='stanzas', choices=['rhyme_markup', 'stress_markup', 'stanzas', 'rhyme_stress_markup'], help='The used markup')
+
+    parser.add_argument('--train_mode', type=str, default='sft', choices=['sft', 'grpo'], help='The used training mode')
+
+    parser.add_argument('--rhyme_coef', type=float, default=0., help='Rhyme score coefficient in rl metric')
+    parser.add_argument('--meter_coef', type=float, default=0., help='Meter score coefficient in rl metric')
+    parser.add_argument('--len_coef', type=float, default=0., help='Len score coefficient in rl metric')
+    parser.add_argument('--sem_coef', type=float, default=0., help='Semantic score coefficient in rl metric')
+    parser.add_argument('--num_generations', type=float, default=0., help='Number of generations in GRPO')
 
     args, unknown1 = parser.parse_known_args()
 
