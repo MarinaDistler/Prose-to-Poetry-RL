@@ -49,20 +49,20 @@ def train_sft(model, tokenizer, datasets, peft_config, clean_eval_data, args):
     print_options(args, None)
 
     if args.model == 't-lite':
-        fact_bach_size = 4
+        fact_batch_size = 4
     else:
-        fact_bach_size = 8
+        fact_batch_size = 8
 
     training_arguments = SFTConfig(
         output_dir=output_dir,
-        per_device_train_batch_size=fact_bach_size,
-        per_device_eval_batch_size=fact_bach_size,
-        gradient_accumulation_steps=args.batch_size // fact_bach_size,
+        per_device_train_batch_size=fact_batch_size,
+        per_device_eval_batch_size=fact_batch_size,
+        gradient_accumulation_steps=args.batch_size // fact_batch_size,
         optim="paged_adamw_32bit",
         num_train_epochs=args.epochs,
         eval_strategy='steps',
-        eval_steps=args.save_steps // fact_bach_size,
-        logging_steps=args.log_steps // fact_bach_size,
+        eval_steps=args.save_steps // fact_batch_size,
+        logging_steps=args.log_steps // fact_batch_size,
         warmup_steps=args.warmup_steps,
         logging_strategy="steps",
         learning_rate=args.lr,
@@ -86,7 +86,7 @@ def train_sft(model, tokenizer, datasets, peft_config, clean_eval_data, args):
     )
 
     callbacks = [ChatGenerationCallback(
-        tokenizer, clean_eval_data, output_dir, batch_size=fact_bach_size,
+        tokenizer, clean_eval_data, output_dir, batch_size=fact_batch_size,
         compute_metrics=make_metric_fn(), generate=args.pretrain,
     )]
 
