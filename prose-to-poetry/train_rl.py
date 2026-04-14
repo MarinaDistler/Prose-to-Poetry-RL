@@ -2,10 +2,12 @@ from trl import GRPOTrainer, GRPOConfig
 from datetime import datetime
 import os
 import sys
+from transformers.integrations import TensorBoardCallback
 
-from util import print_options, start_tensorboard
+from util import print_options
 from metrics import build_reward_functions
-from trainer_callback import GPUMemoryCallback
+from trainer_callback import CustomTensorBoardCallback
+from util import Tee
 
 def train_grpo(model, tokenizer, datasets, peft_config, args):
     checkpoint = None if args.checkpoint == '' else args.checkpoint
@@ -13,24 +15,21 @@ def train_grpo(model, tokenizer, datasets, peft_config, args):
 
     if checkpoint is not None:
         print(f'Use checkpoint {checkpoint}')
-        run_name = f"{args.name_run}-from-{checkpoint}"
+        run_name = f"{args.name_run}-from-{checkpoint}-grpo"
     else:
-        run_name = f"{args.name_run}-{datetime.now().strftime('%m-%d-%H-%M')}"
+        run_name = f"{args.name_run}-{datetime.now().strftime('%m-%d-%H-%M')}-grpo"
 
     output_dir = os.path.join(
         args.output_dir,
-        run_name + '-grpo'
+        run_name 
     )
+    log_file = os.path.join(output_dir, "stdout.log")
+    log_dir=os.path.join(output_dir, "runs")
+
+    sys.stdout = Tee(log_file)
+    sys.stderr = sys.stdout
 
     config = vars(args)
-    project = 'Poetry-GRPO' 
-
-    writer, log_dir = start_tensorboard(
-        run_name,
-        project=project,
-        config={key: config[key] for key in set(config.keys()) - {'name_run'}}
-    )
-
     print_options(args, None)
 
     # --- batch логика ---
@@ -42,6 +41,7 @@ def train_grpo(model, tokenizer, datasets, peft_config, args):
     # --- GRPO config ---
     training_arguments = GRPOConfig(
         output_dir=output_dir,
+        run_name=run_name,
 
         per_device_train_batch_size=fact_batch_size,
         gradient_accumulation_steps=max(1, args.batch_size // fact_batch_size),
@@ -57,7 +57,6 @@ def train_grpo(model, tokenizer, datasets, peft_config, args):
         fp16=False,
 
         report_to="tensorboard",
-        logging_dir=log_dir,
 
         save_total_limit=5,
 
@@ -93,8 +92,10 @@ def train_grpo(model, tokenizer, datasets, peft_config, args):
 
         args=training_arguments,
 
-        callbacks=[GPUMemoryCallback()]
+        callbacks=[CustomTensorBoardCallback(config)]
     )
+
+    trainer.remove_callback(TensorBoardCallback)
 
     trainer.train(resume_from_checkpoint=checkpoint)
 

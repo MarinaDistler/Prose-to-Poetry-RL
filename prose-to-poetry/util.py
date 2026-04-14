@@ -3,6 +3,7 @@ import random
 import numpy as np
 import typing as tp
 import os
+import sys
 import shutil
 import re
 from transformers import TrainerCallback
@@ -51,18 +52,20 @@ def seed_everything(seed: int = 1729) -> None:
     torch.backends.cudnn.deterministic = True
 
 
-def start_tensorboard(name, project, config=None, log_dir="runs"):
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    run_name = f"{project}/{name}_{timestamp}"
-    
-    log_dir = os.path.join(log_dir, run_name)
-    writer = SummaryWriter(log_dir=log_dir)
-    
-    if config is not None:
-        for key, value in config.items():
-            writer.add_text(f"config/{key}", str(value))
-    
-    return writer, log_dir
+
+class Tee:
+    def __init__(self, filename):
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        self.file = open(filename, "a")
+        self.stdout = sys.stdout
+
+    def write(self, msg):
+        self.stdout.write(msg)
+        self.file.write(msg)
+
+    def flush(self):
+        self.stdout.flush()
+        self.file.flush()
 
 
 

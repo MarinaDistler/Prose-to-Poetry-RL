@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from models import ModelTLite, ModelQwen
 from promts import format_chat_template 
-from util import print_options, seed_everything, start_tensorboard
+from util import print_options, seed_everything
 from metrics import make_metric_fn, encode_sent
 from trainer_callback import ChatGenerationCallback
 from train_rl import train_grpo

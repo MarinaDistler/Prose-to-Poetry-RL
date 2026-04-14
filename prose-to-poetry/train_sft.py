@@ -6,10 +6,10 @@ from transformers import (
 from trl import SFTTrainer, SFTConfig
 from datetime import datetime
 
-
-from util import print_options, start_tensorboard
+from util import print_options
 from metrics import make_metric_fn
 from trainer_callback import ChatGenerationCallback
+
 
 class TrainDataCollator:
     def __init__(self, tokenizer, model):
@@ -39,12 +39,13 @@ def train_sft(model, tokenizer, datasets, peft_config, clean_eval_data, args):
     else:
         run_name = f"{args.name_run}-{datetime.now().strftime('%m-%d-%H-%M')}"
     output_dir = os.path.join(args.output_dir, run_name + ('-pretrain' if args.pretrain else ''))
+    log_file = os.path.join(output_dir, "stdout.log")
+    log_dir=os.path.join(output_dir, "runs")
+
+    sys.stdout = Tee(log_file)
+    sys.stderr = sys.stdout
+
     config = vars(args)
-    project = 'Poetry-pretrain' if args.pretrain else 'Poetry'
-    writer, log_dir = start_tensorboard(
-        run_name, project=project, 
-        config={key: config[key] for key in set(config.keys()) - {'name_run'}}
-    )
     print_options(args, None)
 
     if args.model == 't-lite':

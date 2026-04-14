@@ -4,6 +4,8 @@ from transformers import TrainerCallback, DataCollatorWithPadding
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import ast
+import json
+from transformers.integrations import TensorBoardCallback
 from torch.amp import autocast
 from datasets import Dataset
 
@@ -141,21 +143,43 @@ class ChatGenerationCallback(TrainerCallback):
         self.tokenizer.save_pretrained(checkpoint_dir)
         print(f"Чекпоинт сохранён в {checkpoint_dir}")
 
-class GPUMemoryCallback(TrainerCallback):
-    def __init__(self):
+
+class CustomTensorBoardCallback(TensorBoardCallback):
+    def __init__(self, config):
         super().__init__()
+        self.config = config
+        self.logged_config = False
+
+    def on_train_begin(self, args, state, control, **kwargs):
+        super().on_train_begin(args, state, control, **kwargs)
+        if not self.logged_config:
+            self.tb_writer.add_text(
+                "config",
+                f"<pre>{json.dumps(self.config, indent=2, ensure_ascii=False)}</pre>"
+            )
+            self.logged_config = True
+
 
     def _get_mem(self):
         if torch.cuda.is_available():
             return {
-                "gpu_mem_allocated_gb": torch.cuda.memory_allocated() / 1e9,
-                "gpu_mem_reserved_gb": torch.cuda.memory_reserved() / 1e9,
-                "gpu_mem_max_allocated_gb": torch.cuda.max_memory_allocated() / 1e9,
+                "gpu/mem_allocated_gb": torch.cuda.memory_allocated() / 1e9,
+                "gpu/mem_reserved_gb": torch.cuda.memory_reserved() / 1e9,
+                "gpu/mem_max_allocated_gb": torch.cuda.max_memory_allocated() / 1e9,
             }
         return {}
 
-    def on_evaluate(self, args, state, control, **kwargs):
-        if kwargs.get("trainer") is not None:
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        super().on_log(args, state, control, logs=logs, **kwargs)
+        if not state.is_world_process_zero:
+            return
+
+        if torch.cuda.is_available():
             mem = self._get_mem()
-            kwargs["trainer"].log({**mem})
-        return control
+            for name, value in mem.items():
+                self.tb_writer.add_scalar(
+                    name,
+                    value,
+                    state.global_step
+                )
+            self.tb_writer.flush()
