@@ -4,6 +4,7 @@ wandb
 .venv
 **/__pycache__/*
 models/*
+runs/
 external_code/verslibre/models/word2lemma.pkl
 external_code/verslibre/tmp/accents.pkl
 external_code/verslibre/tmp/stress_model/
