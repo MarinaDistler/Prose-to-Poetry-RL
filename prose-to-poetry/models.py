@@ -3,7 +3,6 @@ import torch
 from peft import PeftModel
 import os
 import re
-from trl import AutoModelForCausalLMWithValueHead
 
 from promts import get_train_prompt, get_prompt, system_instruction, system_instruction_generate
 from util import clean_responses
@@ -24,28 +23,22 @@ class BaseModel:
             )
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name,
-                torch_dtype=torch.bfloat16,
+                dtype=torch.bfloat16,
                 quantization_config=bnb_config,
             )
         else:
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name,
-                torch_dtype=torch.bfloat16,
+                dtype=torch.bfloat16,
             )
         if path != '':
             self.model = PeftModel.from_pretrained(self.model, path)
             self.model.enable_adapter_layers()
 
-        if train_mode == "ppo":
-            self.model = AutoModelForCausalLMWithValueHead.from_pretrained(self.model)
-    
         self.model.cuda()
 
     def save_for_inference(self, path):
-        if self.train_mode == "ppo":
-            base_model = self.model.pretrained_model
-        else:
-            base_model = self.model
+        base_model = self.model
 
         base_model = base_model.merge_and_unload().to(torch.bfloat16)
         base_model.save_pretrained(os.path.join(path, 'merged'), safe_serialization=True)

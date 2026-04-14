@@ -18,9 +18,10 @@ def encode_sent(texts, batch_size=8):
         batch = texts[i:i+batch_size]
 
         encoded = tokenizer_sent(batch, padding=True, truncation=True, return_tensors='pt')
+        encoded = {k: v.cuda() for k, v in encoded.items()}
 
         with torch.no_grad():
-            model_output = model_sent({k: v.cuda() for k, v in encoded.items()})
+            model_output = model_sent(**encoded)
 
         embeddings = mean_pooling(model_output, encoded['attention_mask'])
         embeddings = F.normalize(embeddings, p=2, dim=1)

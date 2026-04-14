@@ -60,7 +60,6 @@ def train_grpo(model, tokenizer, datasets, peft_config, args):
 
         save_total_limit=5,
 
-        max_prompt_length=256,
         max_completion_length=256,
 
         num_generations=args.num_generations,  # ключевой параметр GRPO
@@ -85,7 +84,7 @@ def train_grpo(model, tokenizer, datasets, peft_config, args):
         processing_class=tokenizer,
 
         train_dataset=datasets["train"],
-        eval_dataset=datasets["eval"],
+        eval_dataset=datasets["test"],
 
         reward_funcs=metric_fn,
 

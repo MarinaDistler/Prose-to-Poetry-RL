@@ -81,12 +81,14 @@ def main(args):
             'train': Dataset.from_pandas(dataset['train'][['text']]),
             'test': Dataset.from_pandas(dataset['test'][['text']]),
         }
-    elif args.train_mode == 'ppo':
-        dataset['train']['input_emb'] = encode_sent(dataset['train']['input']).apply(lambda x: x.tolist())
-        dataset['test']['input_emb'] = encode_sent(dataset['test']['input']).apply(lambda x: x.tolist())
+    elif args.train_mode == 'grpo':
+        dataset['train']['input_emb'] = encode_sent(dataset['train']['input'].tolist()).tolist()
+        dataset['test']['input_emb'] = encode_sent(dataset['test']['input'].tolist()).tolist()
         dataset = {
-            'train': Dataset.from_pandas(dataset['train'][['text', 'input_emb', 'rhyme_scheme', 'meter']]),
-            'test': Dataset.from_pandas(dataset['test'][['text', 'input_emb', 'rhyme_scheme', 'meter']]),
+            'train': Dataset.from_pandas(dataset['train'].rename(columns={'text': 'prompt'})
+                                    .reset_index(drop=True)[['prompt', 'input_emb', 'rhyme_scheme', 'meter']]),
+            'test': Dataset.from_pandas(dataset['test'].rename(columns={'text': 'prompt'})
+                                    .reset_index(drop=True)[['prompt', 'input_emb', 'rhyme_scheme', 'meter']]),
         }
 
     if args.train_mode == "sft":
@@ -97,7 +99,7 @@ def main(args):
             eval_data[~eval_data['meter'].isin(['dolnik2', 'dolnik3'])].iloc[:20], 
             args
         )
-    elif args.train_mode == "ppo":
+    elif args.train_mode == "grpo":
         trainer = train_grpo(
             model.model, 
             model.tokenizer, dataset, 
@@ -131,7 +133,7 @@ if __name__ == "__main__":
     parser.add_argument('--meter_coef', type=float, default=0.2, help='Meter score coefficient in rl metric')
     parser.add_argument('--len_coef', type=float, default=0.1, help='Len score coefficient in rl metric')
     parser.add_argument('--sem_coef', type=float, default=0.4, help='Semantic score coefficient in rl metric')
-    parser.add_argument('--num_generations', type=int, default=5, help='Number of generations in GRPO')
+    parser.add_argument('--num_generations', type=int, default=4, help='Number of generations in GRPO')
 
     args, unknown1 = parser.parse_known_args()
 

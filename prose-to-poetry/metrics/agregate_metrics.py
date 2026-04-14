@@ -73,7 +73,7 @@ class ComputeAggMetrics:
 def make_metric_fn():
     return ComputeAggMetrics()
 
-
+'''
 class ComputeMetricsRL:
     def __init__(self, args):
         self.coef_metrics = {}
@@ -142,19 +142,21 @@ class ComputeMetricsRL:
 def make_metric_fn_rl(args):
     return ComputeMetricsRL(args)
 
+'''
+
 def build_reward_functions(args):
     reward_funcs = []
 
-    if args['rhyme_coef'] > 0:
-        reward_funcs.append(make_rhyme_reward(args['rhyme_coef']))
+    if args.rhyme_coef > 0:
+        reward_funcs.append(make_rhyme_reward(args.rhyme_coef))
 
-    if args['meter_coef'] > 0:
-        reward_funcs.append(make_meter_reward(args['meter_coef']))
+    if args.meter_coef > 0:
+        reward_funcs.append(make_meter_reward(args.meter_coef))
 
-    if args['len_coef'] > 0:
-        reward_funcs.append(make_len_reward(args['len_coef']))
+    if args.len_coef > 0:
+        reward_funcs.append(make_len_reward(args.len_coef))
 
-    if args['sem_coef'] > 0:
-        reward_funcs.append(make_semantic_reward(args['sem_coef']))
+    if args.sem_coef > 0:
+        reward_funcs.append(make_semantic_reward(args.sem_coef))
 
     return reward_funcs
