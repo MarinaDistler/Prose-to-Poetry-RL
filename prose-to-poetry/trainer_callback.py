@@ -140,3 +140,22 @@ class ChatGenerationCallback(TrainerCallback):
         model.save_pretrained(checkpoint_dir, safe_serialization=True)
         self.tokenizer.save_pretrained(checkpoint_dir)
         print(f"Чекпоинт сохранён в {checkpoint_dir}")
+
+class GPUMemoryCallback(TrainerCallback):
+    def __init__(self):
+        super().__init__()
+
+    def _get_mem(self):
+        if torch.cuda.is_available():
+            return {
+                "gpu_mem_allocated_gb": torch.cuda.memory_allocated() / 1e9,
+                "gpu_mem_reserved_gb": torch.cuda.memory_reserved() / 1e9,
+                "gpu_mem_max_allocated_gb": torch.cuda.max_memory_allocated() / 1e9,
+            }
+        return {}
+
+    def on_evaluate(self, args, state, control, **kwargs):
+        if kwargs.get("trainer") is not None:
+            mem = self._get_mem()
+            kwargs["trainer"].log({**mem})
+        return control

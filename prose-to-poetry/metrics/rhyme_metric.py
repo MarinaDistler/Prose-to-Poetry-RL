@@ -1,5 +1,6 @@
 from collections import defaultdict
 import nltk
+from subprocess import check_output, DEVNULL
 
 from rhymetagger import RhymeTagger
 
@@ -118,6 +119,18 @@ class MyRhymeTagger(RhymeTagger): # переписываю чтобы доста
         else:
             output = self.output(rhymes_detected)
             return output, rhyme_scores, ngram_scores
+
+    def _transcription(self, text):
+        '''
+        Transcribe a text to IPA using eSpeak
+        --------------------------------------------------------------
+        :text  = [string] in specified language
+        '''
+        ipa = check_output(
+            ["espeak", "-q", "--ipa=1", "-v", self.lang, text],
+            stderr=DEVNULL
+        ).decode("utf-8").strip()
+        return ipa
 
             
 

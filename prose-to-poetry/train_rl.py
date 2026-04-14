@@ -5,6 +5,7 @@ import sys
 
 from util import print_options, start_tensorboard
 from metrics import build_reward_functions
+from trainer_callback import GPUMemoryCallback
 
 def train_grpo(model, tokenizer, datasets, peft_config, args):
     checkpoint = None if args.checkpoint == '' else args.checkpoint
@@ -91,6 +92,8 @@ def train_grpo(model, tokenizer, datasets, peft_config, args):
         peft_config=peft_config,
 
         args=training_arguments,
+
+        callbacks=[GPUMemoryCallback()]
     )
 
     trainer.train(resume_from_checkpoint=checkpoint)

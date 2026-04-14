@@ -31,12 +31,13 @@ def encode_sent(texts, batch_size=8):
 
 def embedding_sim_score(pred, emb_prose):
     emb_poem = encode_sent(pred)
+    emb_prose = torch.asarray(emb_prose)
     cos_sim = (emb_prose * emb_poem).sum(dim=1).cpu()
     return cos_sim
 
 def make_semantic_reward(coef):
-    def sem_reward(completions, emb_prose=None, **kwargs):
-        scores = embedding_sim_score(completions, emb_prose)
+    def sem_reward(completions, input_emb=None, **kwargs):
+        scores = embedding_sim_score(completions, input_emb)
         return (coef * scores).tolist()
     
     return sem_reward
