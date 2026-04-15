@@ -61,8 +61,8 @@ def train_sft(model, tokenizer, datasets, peft_config, clean_eval_data, args):
         optim="paged_adamw_32bit",
         num_train_epochs=args.epochs,
         eval_strategy='steps',
-        eval_steps=args.save_steps // fact_batch_size,
-        logging_steps=args.log_steps // fact_batch_size,
+        eval_steps=args.eval_steps,
+        logging_steps=args.log_steps,
         warmup_steps=args.warmup_steps,
         logging_strategy="steps",
         learning_rate=args.lr,
@@ -72,7 +72,7 @@ def train_sft(model, tokenizer, datasets, peft_config, clean_eval_data, args):
         report_to="tensorboard",
         logging_dir=log_dir,
         save_strategy='steps',
-        save_steps=args.save_steps // fact_batch_size,              # Сохранять каждые 500 шагов
+        save_steps=args.save_steps,              # Сохранять каждые 500 шагов
         save_total_limit=10 if args.pretrain else 2,          # Макс. число чекпоинтов (старые удаляются)
         load_best_model_at_end=True, # Загружать лучшую модель в конце
         metric_for_best_model="eval_loss",  # Критерий выбора лучшей модели

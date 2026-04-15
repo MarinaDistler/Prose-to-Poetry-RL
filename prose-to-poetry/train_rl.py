@@ -49,8 +49,8 @@ def train_grpo(model, tokenizer, datasets, peft_config, args):
         learning_rate=args.lr,  # RL обычно поменьше
         num_train_epochs=args.epochs,
 
-        logging_steps=max(1, args.log_steps // fact_batch_size),
-        save_steps=max(1, args.save_steps // fact_batch_size),
+        logging_steps=max(1, args.log_steps),
+        save_steps=max(1, args.save_steps),
         warmup_steps=args.warmup_steps,
 
         bf16=True,
@@ -70,7 +70,7 @@ def train_grpo(model, tokenizer, datasets, peft_config, args):
         num_completions_to_print=10,
 
         eval_strategy='steps',
-        eval_steps=args.save_steps // fact_batch_size,
+        eval_steps=args.eval_steps,
         per_device_eval_batch_size=fact_batch_size,
         num_generations_eval=1,
     )
