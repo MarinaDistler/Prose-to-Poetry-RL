@@ -10,6 +10,11 @@ system_instruction = '''Вы – талантливый поэт, создающ
                     '''5. Выразительность: сделайте текст поэтичным и насыщенным.\n''' \
                     '''6. Формат: в ответе должно быть исключительно само стихотворение без комментариев.\n'''
 
+system_instruction_short = '''Четверостишие.
+Соблюдай рифму и метр.
+Без пояснений.
+'''
+
 system_instruction_generate = '''Вы – талантливый поэт, создающий русскую поэзию. При написании стихотворения соблюдайте следующие правила:\n''' \
                     '''1. Рифмовка: используйте заданную схему рифм.\n''' \
                     '''2. Размер: пишите в указанном метре и соблюдайте структуру чередования ударных и безударных слогов.\n''' \
@@ -53,7 +58,11 @@ def get_prompt(text, scheme='ABAB', meter='ямб'):
         return f'''Напиши четверостишие с параметрами:\n Рифмовка: {scheme}\n Размер: {meters[meter]}\n'''
     return f'''Преобразуй прозу в четверостишие с параметрами:\n Рифмовка: {scheme}\n Размер: {meters[meter]}\n Исходный текст: {text}'''
 
-def get_train_prompt(text, scheme='ABAB', meter='ямб'):
+def get_train_prompt(text, scheme='ABAB', meter='ямб', short=False):
+    if short:
+        if text is None:
+            return f'''Рифма: {scheme}\n Метр: {short_meters[meter]}\n'''
+        return f'''Рифма: {scheme}\n Метр: {short_meters[meter]}\n Текст: {text}'''
     if text is None:
         return f'''Напиши четверостишие с параметрами:\n Рифмовка: {scheme}\n Размер: {short_meters[meter]}\n'''
     return f'''Преобразуй прозу в четверостишие с параметрами:\n Рифмовка: {scheme}\n Размер: {short_meters[meter]}\n Исходный текст: {text}'''
@@ -87,7 +96,7 @@ def generate_model_answers(model_func, file_path='test_text.txt', from_id=0, to_
     return pd.concat(answers)
 
 
-def format_chat_template(row, tokenizer, generate=False, markup='stanzas'):
+def format_chat_template(row, tokenizer, generate=False, markup='stanzas', short=False):
     if generate:
         promt = get_train_prompt(None, row['rhyme_scheme'], row['meter'])
         row_json = [
@@ -95,9 +104,9 @@ def format_chat_template(row, tokenizer, generate=False, markup='stanzas'):
             {"role": "user", "content": promt},
         ]
     else:
-        promt = get_train_prompt(row['input'], row['rhyme_scheme'], row['meter'])
+        promt = get_train_prompt(row['input'], row['rhyme_scheme'], row['meter'], short=short)
         row_json = [
-            {"role": "system", "content": system_instruction},
+            {"role": "system", "content": system_instruction if not short else system_instruction_short},
             {"role": "user", "content": promt},
         ]
     if markup is not None:
