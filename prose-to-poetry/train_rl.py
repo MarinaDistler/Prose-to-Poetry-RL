@@ -70,9 +70,9 @@ def train_grpo(model, tokenizer, datasets, peft_config, args):
         num_completions_to_print=10,
 
         eval_strategy='steps',
-        eval_steps=args.save_steps // args.batch_size,
+        eval_steps=args.save_steps // fact_batch_size,
         per_device_eval_batch_size=fact_batch_size,
-        num_generations_eval=args.num_generations // 2,
+        num_generations_eval=1,
     )
 
     # --- reward function ---
