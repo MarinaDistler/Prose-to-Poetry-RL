@@ -137,7 +137,10 @@ def check_meter_fast(lines, meter_name, rhyme_scheme):
     for i, j in scheme_map_dict[rhyme_scheme]:
         if i < len(line_sylables) and j < len(line_sylables):
             diffs.append(abs(line_sylables[i] - line_sylables[j]))
-    line_len_score = np.exp(-np.mean(diffs) / 2)
+    if len(diffs) == 0:
+        line_len_score = 0.
+    else:
+        line_len_score = np.exp(-np.mean(diffs) / 2)
 
     return 0.8 * (1 - error_score / float(count_sylables)) + 0.2 * line_len_score
 

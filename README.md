@@ -16,5 +16,17 @@ python3 prose-to-poetry/train.py \
   --log_steps=10 \
   --eval_steps=180 \
   --warmup_steps=30 \
-  --lr=1e-7 \
+  --lr=1e-7 --rhyme_coef=0.9 --meter_coef=0 --len_coef=0 --sem_coef=0.1\
+  --train_mode=grpo
+
+python3 prose-to-poetry/train.py \
+  --model='qwen' \
+  --save_steps=60 \
+  --train_dataset=dataset/prosa_train_text.csv \
+  --test_dataset=dataset/prosa_val_text.csv \
+  --epochs=10 \
+  --log_steps=10 \
+  --eval_steps=180 \
+  --warmup_steps=30 \
+  --lr=1e-7 --rhyme_coef=0.45 --meter_coef=0.45 --len_coef=0 --sem_coef=0.1\
   --train_mode=grpo
