@@ -49,7 +49,9 @@ def main(args):
     else:
         peft_config = None
 
-    eval_data = pd.read_csv(args.test_dataset, index_col='Unnamed: 0')
+    eval_data = pd.read_csv(args.test_dataset)
+    if 'Unnamed: 0' in eval_data.columns:
+        eval_data = eval_data.set_index('Unnamed: 0')
     if os.path.isdir(args.train_dataset):
         all_dfs = []
         # Рекурсивно обходим все файлы в папке
