@@ -9,11 +9,12 @@ It leverages large language models (Qwen) with fine-tuning and markup to control
 python3 prose-to-poetry/train.py \
   --model='qwen' \
   --from_pretrain=models/qwen \
-  --save_steps=240 \
+  --save_steps=60 \
   --train_dataset=dataset/prosa_train_text.csv \
   --test_dataset=dataset/prosa_val_text.csv \
   --epochs=10 \
-  --log_steps=20 \
+  --log_steps=10 \
+  --eval_steps=180 \
   --warmup_steps=30 \
   --lr=1e-7 \
   --train_mode=grpo

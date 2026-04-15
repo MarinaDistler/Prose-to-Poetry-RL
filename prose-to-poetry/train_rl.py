@@ -38,10 +38,14 @@ def train_grpo(model, tokenizer, datasets, peft_config, args):
     else:
         fact_batch_size = 4  
 
+    reward_funcs, reward_weights = build_reward_functions(args)
+
     # --- GRPO config ---
     training_arguments = GRPOConfig(
         output_dir=output_dir,
         run_name=run_name,
+
+        reward_weights=reward_weights,
 
         per_device_train_batch_size=fact_batch_size,
         gradient_accumulation_steps=max(1, args.batch_size // fact_batch_size),
@@ -75,9 +79,6 @@ def train_grpo(model, tokenizer, datasets, peft_config, args):
         num_generations_eval=1,
     )
 
-    # --- reward function ---
-    metric_fn = build_reward_functions(args)
-
     # --- trainer ---
     trainer = GRPOTrainer(
         model=model,
@@ -86,7 +87,7 @@ def train_grpo(model, tokenizer, datasets, peft_config, args):
         train_dataset=datasets["train"],
         eval_dataset=datasets["test"],
 
-        reward_funcs=metric_fn,
+        reward_funcs=reward_funcs,
 
         peft_config=peft_config,
 

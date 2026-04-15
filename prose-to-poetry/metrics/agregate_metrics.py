@@ -146,17 +146,22 @@ def make_metric_fn_rl(args):
 
 def build_reward_functions(args):
     reward_funcs = []
+    reward_weights = []
 
     if args.rhyme_coef > 0:
-        reward_funcs.append(make_rhyme_reward(args.rhyme_coef))
+        reward_funcs.append(make_rhyme_reward(1.))
+        reward_weights.append(args.rhyme_coef)
 
     if args.meter_coef > 0:
-        reward_funcs.append(make_meter_reward(args.meter_coef))
+        reward_funcs.append(make_meter_reward(1.))
+        reward_weights.append(args.meter_coef)
 
     if args.len_coef > 0:
-        reward_funcs.append(make_len_reward(args.len_coef))
+        reward_funcs.append(make_len_reward(1.))
+        reward_weights.append(args.len_coef)
 
     if args.sem_coef > 0:
-        reward_funcs.append(make_semantic_reward(args.sem_coef))
+        reward_funcs.append(make_semantic_reward(1.))
+        reward_weights.append(args.sem_coef)
 
-    return reward_funcs
+    return reward_funcs, reward_weights
