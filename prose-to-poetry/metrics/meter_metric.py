@@ -142,6 +142,8 @@ def check_meter_fast(lines, meter_name, rhyme_scheme):
     else:
         line_len_score = np.exp(-np.mean(diffs) / 2)
 
+    if count_sylables == 0:
+        return 0.
     return 0.8 * (1 - error_score / float(count_sylables)) + 0.2 * line_len_score
 
 def get_meter(lines):

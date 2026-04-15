@@ -24,7 +24,7 @@ def encode_sent(texts, batch_size=8):
             model_output = model_sent(**encoded)
 
         embeddings = mean_pooling(model_output, encoded['attention_mask'])
-        embeddings = F.normalize(embeddings, p=2, dim=1)
+        #embeddings = F.normalize(embeddings, p=2, dim=1)
 
         all_embeddings.append(embeddings.cpu())
     return torch.cat(all_embeddings, dim=0)
@@ -32,7 +32,8 @@ def encode_sent(texts, batch_size=8):
 def embedding_sim_score(pred, emb_prose):
     emb_poem = encode_sent(pred)
     emb_prose = torch.asarray(emb_prose)
-    cos_sim = (emb_prose * emb_poem).sum(dim=1).cpu()
+    cos_sim = F.cosine_similarity(emb_prose, emb_poem, dim=1).cpu()
+    #cos_sim = (emb_prose * emb_poem).sum(dim=1).cpu()
     return cos_sim
 
 def make_semantic_reward(coef):
