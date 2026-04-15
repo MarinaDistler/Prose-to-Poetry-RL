@@ -11,6 +11,7 @@ python3 prose-to-poetry/train.py \
   --from_pretrain=models/qwen \
   --save_steps=240 \
   --train_dataset=dataset/prosa_train_text.csv \
+  --test_dataset=dataset/prosa_val_text.csv \
   --epochs=10 \
   --log_steps=20 \
   --warmup_steps=30 \
