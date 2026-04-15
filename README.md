@@ -21,12 +21,12 @@ python3 prose-to-poetry/train.py \
 
 python3 prose-to-poetry/train.py \
   --model='qwen' \
-  --save_steps=60 \
+  --save_steps=30 \
   --train_dataset=dataset/prosa_train_text.csv \
   --test_dataset=dataset/prosa_val_text.csv \
   --epochs=10 \
   --log_steps=10 \
-  --eval_steps=180 \
+  --eval_steps=90 \
   --warmup_steps=30 \
   --lr=1e-7 --rhyme_coef=0.45 --meter_coef=0.45 --len_coef=0 --sem_coef=0.1\
   --train_mode=grpo

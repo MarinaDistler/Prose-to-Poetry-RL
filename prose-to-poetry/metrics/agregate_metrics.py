@@ -149,7 +149,7 @@ def build_reward_functions(args):
     reward_weights = []
 
     if args.rhyme_coef > 0:
-        reward_funcs.append(make_rhyme_reward(1.))
+        reward_funcs.append(make_rhyme_reward(1., args.rhyme_alpha))
         reward_weights.append(args.rhyme_coef)
 
     if args.meter_coef > 0:

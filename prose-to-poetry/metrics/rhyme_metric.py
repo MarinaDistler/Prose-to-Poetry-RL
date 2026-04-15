@@ -157,7 +157,7 @@ def check_rhyme_scheme(lines, scheme="ABAB"):
     return correct_rhymes / total_possible if total_possible > 0 else 0.
 
 
-def get_rhyme_score(lines, scheme="ABAB", alpha=0.1):
+def get_rhyme_score(lines, scheme="ABAB", alpha=0.):
     pos_pairs = scheme_map_dict[scheme]
     pos_score, pos_count = 0., 0
     neg_score, neg_count = 0., 0
@@ -174,9 +174,11 @@ def get_rhyme_score(lines, scheme="ABAB", alpha=0.1):
 
     pos_mean = pos_score / pos_count if pos_count > 0 else 0.
     neg_mean = neg_score / neg_count if neg_count > 0 else 0.
-    return pos_mean - alpha * neg_mean
+    score = pos_mean - alpha * neg_mean
+    score = (score + alpha) / (1 + alpha)
+    return score
 
-def make_rhyme_reward(coef):
+def make_rhyme_reward(coef, alpha):
     def rhyme_reward(completions, rhyme_scheme=None, **kwargs):
         rewards = []
         
@@ -184,7 +186,7 @@ def make_rhyme_reward(coef):
             lines = text.split('\n')
             f_lines = filter_lines(lines)
             
-            score = check_rhyme_scheme(f_lines, scheme)
+            score = get_rhyme_score(f_lines, scheme, alpha=alpha)
             rewards.append(coef * score)
         
         return rewards
