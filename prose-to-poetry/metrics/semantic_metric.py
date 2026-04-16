@@ -3,7 +3,8 @@ from transformers import AutoTokenizer, AutoModel
 import torch.nn.functional as F
 
 tokenizer_sent = AutoTokenizer.from_pretrained("sentence-transformers/paraphrase-multilingual-mpnet-base-v2")
-model_sent = AutoModel.from_pretrained("sentence-transformers/paraphrase-multilingual-mpnet-base-v2").cuda()
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model_sent = AutoModel.from_pretrained("sentence-transformers/paraphrase-multilingual-mpnet-base-v2").to(device)
 
 
 def mean_pooling(model_output, attention_mask):
@@ -18,7 +19,7 @@ def encode_sent(texts, batch_size=8):
         batch = texts[i:i+batch_size]
 
         encoded = tokenizer_sent(batch, padding=True, truncation=True, return_tensors='pt')
-        encoded = {k: v.cuda() for k, v in encoded.items()}
+        encoded = {k: v.to(device) for k, v in encoded.items()}
 
         with torch.no_grad():
             model_output = model_sent(**encoded)

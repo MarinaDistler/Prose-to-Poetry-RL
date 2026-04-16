@@ -62,7 +62,7 @@ def train_grpo(model, tokenizer, datasets, peft_config, args):
 
         report_to="tensorboard",
 
-        save_total_limit=5,
+        save_total_limit=100,
 
         max_completion_length=256,
 
