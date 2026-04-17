@@ -24,7 +24,7 @@ def clean_responses(responses):
 
 def filter_lines(lines):
     lines = [line.strip() for line in lines if any(ch.isalpha() for ch in line)]
-    if lines[0] == 'assistant':
+    if len(lines) > 0 and lines[0] == 'assistant':
         lines = lines[1:]
     return lines
 
