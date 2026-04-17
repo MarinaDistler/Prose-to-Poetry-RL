@@ -144,6 +144,24 @@ def make_metric_fn_rl(args):
 
 '''
 
+def compute_gate(sem_scores: torch.Tensor, len_scores: torch.Tensor,
+    k_sem: float = 8.0, k_len: float = 5.0,
+    sem_thr: float = 0.7, len_thr: float = 0.9,):
+    """
+    sem_scores: (batch,)
+    len_scores: (batch,)
+    returns: (batch,) gate in (0,1)
+    """
+
+    gate_logits = (
+        k_sem * (sem_scores - sem_thr) +
+        k_len * (len_scores - len_thr)
+    )
+
+    gates = torch.sigmoid(gate_logits)
+
+    return gates
+
 def build_reward_functions(args):
     reward_funcs = []
     reward_weights = []
@@ -165,3 +183,65 @@ def build_reward_functions(args):
         reward_weights.append(args.sem_coef)
 
     return reward_funcs, reward_weights
+
+def build_reward_functions(args):
+    # --- base reward functions ---
+    rhyme_fn = None
+    meter_fn = None
+
+    if args.rhyme_coef > 0:
+        rhyme_fn = make_rhyme_reward(1., args.rhyme_alpha)
+
+    if args.meter_coef > 0:
+        meter_fn = make_meter_reward(1.)
+
+    len_fn = make_len_reward(1.)
+    sem_fn = make_semantic_reward(1.)
+
+    def gated_reward(log_metric=None, **kwargs):
+        # --- 1. compute all base scores ---
+
+        rhyme_scores = rhyme_fn(**kwargs) if rhyme_fn else None
+        meter_scores = meter_fn(**kwargs) if meter_fn else None
+        len_scores = len_fn(**kwargs) 
+        sem_scores = sem_fn(**kwargs) 
+
+        # --- 2. convert to torch ---
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        def to_tensor(x):
+            return torch.tensor(x, dtype=torch.float32, device=device)
+
+        rhyme_t = to_tensor(rhyme_scores) if rhyme_scores is not None else 0
+        meter_t = to_tensor(meter_scores) if meter_scores is not None else 0
+        len_t   = to_tensor(len_scores)  
+        sem_t   = to_tensor(sem_scores)  
+
+        # --- 3. gate ---
+        gate = compute_gate(sem_t, len_t,
+                            k_sem=getattr(args, "k_sem", 8.0),
+                            k_len=getattr(args, "k_len", 5.0),
+                            sem_thr=getattr(args, "sem_thr", 0.7),
+                            len_thr=getattr(args, "len_thr", 0.9))
+
+        # --- 4. form reward ---
+        form = args.rhyme_coef * rhyme_t + args.meter_coef * meter_t
+
+        reward = (1 - args.sem_coef - args.len_coef) * gate * form  + args.sem_coef * sem_t + args.len_coef * len_t
+        if log_metric:
+            def log_stats(name, tensor):
+                if tensor is None:
+                    return
+                log_metric(f"{name}_mean", tensor.mean().item())
+                log_metric(f"{name}_std", tensor.std().item())
+
+            log_stats("rhyme", rhyme_t)
+            log_stats("meter", meter_t)
+            log_stats("len", len_t)
+            log_stats("semantic", sem_t)
+            log_stats("gate", gate)
+            log_stats("form", form)
+            
+        return reward.detach().cpu().tolist()
+
+    return [gated_reward]

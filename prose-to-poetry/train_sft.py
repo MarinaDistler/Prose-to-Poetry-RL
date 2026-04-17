@@ -9,6 +9,7 @@ from datetime import datetime
 from util import print_options
 from metrics import make_metric_fn
 from trainer_callback import ChatGenerationCallback
+from util import Tee
 
 
 class TrainDataCollator:

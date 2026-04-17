@@ -178,7 +178,7 @@ def get_rhyme_score(lines, scheme="ABAB", alpha=0.):
     score = (score + alpha) / (1 + alpha)
     return score
 
-def make_rhyme_reward(coef, alpha):
+def make_rhyme_reward(coef, alpha=0.1):
     def rhyme_reward(completions, rhyme_scheme=None, **kwargs):
         rewards = []
         
