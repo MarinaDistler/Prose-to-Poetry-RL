@@ -23,7 +23,10 @@ def clean_responses(responses):
     return responses
 
 def filter_lines(lines):
-    return [line.strip() for line in lines if any(ch.isalpha() for ch in line)]
+    lines = [line.strip() for line in lines if any(ch.isalpha() for ch in line)]
+    if lines[0] == 'assistant':
+        lines = lines[1:]
+    return lines
 
 def text_to_lines(text):
     return [line.strip() for line in text.split('\n') if any(ch.isalpha() for ch in line)]

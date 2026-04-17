@@ -97,7 +97,7 @@ def generate_model_answers(model_func, file_path='test_text.txt', from_id=0, to_
     return pd.concat(answers)
 
 
-def format_chat_template(row, tokenizer, generate=False, markup='stanzas', short=False):
+def format_chat_template(row, tokenizer, generate=False, markup='stanzas', short=False, add_generation_prompt=False):
     if generate:
         promt = get_train_prompt(None, row['rhyme_scheme'], row['meter'])
         row_json = [
@@ -115,5 +115,5 @@ def format_chat_template(row, tokenizer, generate=False, markup='stanzas', short
             {"role": "assistant", "content": '\n'.join(ast.literal_eval(row[markup])) + '\n'}
         )
     row['promt'] = promt
-    row["text"] = tokenizer.apply_chat_template(row_json, tokenize=False)
+    row["text"] = tokenizer.apply_chat_template(row_json, tokenize=False, add_generation_prompt=add_generation_prompt)
     return row

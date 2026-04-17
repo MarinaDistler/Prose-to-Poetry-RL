@@ -71,7 +71,8 @@ def main(args):
 
     markup = args.markup if args.train_mode == 'sft' else None
 
-    format_chat_template_ = lambda row: format_chat_template(row, model.tokenizer, args.pretrain, markup=markup, short=args.short_prompt)
+    format_chat_template_ = lambda row: format_chat_template(row, model.tokenizer, args.pretrain, markup=markup, 
+                                                             short=args.short_prompt, add_generation_prompt=args.add_gen_prompt)
     dataset['train'] = dataset['train'].apply(
         format_chat_template_, axis=1
     )
@@ -135,10 +136,11 @@ if __name__ == "__main__":
     parser.add_argument('--rhyme_coef', type=float, default=0.3, help='Rhyme score coefficient in rl metric')
     parser.add_argument('--rhyme_alpha', type=float, default=0.1, help='Rhyme alpha coef that defises how much negative score affects rhyme reward')
     parser.add_argument('--meter_coef', type=float, default=0.2, help='Meter score coefficient in rl metric')
-    parser.add_argument('--len_coef', type=float, default=0.1, help='Len score coefficient in rl metric')
+    parser.add_argument('--format_coef', type=float, default=0.1, help='Len score coefficient in rl metric')
     parser.add_argument('--sem_coef', type=float, default=0.4, help='Semantic score coefficient in rl metric')
     parser.add_argument('--num_generations', type=int, default=4, help='Number of generations in GRPO')
     parser.add_argument('--short_prompt', action='store_true', help='Enable short prompt')
+    parser.add_argument('--add_gen_prompt', action='store_true', help='Enable add_generation_prompt')
 
     args, unknown1 = parser.parse_known_args()
 

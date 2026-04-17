@@ -7,7 +7,7 @@ external_code_path = os.path.abspath(os.path.join(current_dir, '..', '..', 'exte
 sys.path.append(external_code_path)
 from .rhyme_metric import check_rhyme_scheme, make_rhyme_reward
 from .meter_metric import check_meter_fast, make_meter_reward
-from .len_metric import len_score, make_len_reward
+from .format_metric import format_score, make_format_reward
 from .semantic_metric import embedding_sim_score, make_semantic_reward
 
 from util import filter_lines
@@ -77,7 +77,7 @@ def make_metric_fn():
 class ComputeMetricsRL:
     def __init__(self, args):
         self.coef_metrics = {}
-        for name in ['rhyme_coef', 'meter_coef', 'len_coef', 'sem_coef']:
+        for name in ['rhyme_coef', 'meter_coef', 'format_coef', 'sem_coef']:
             self.coef_metrics[name] = args[name] 
         self.metrics = {}
         self.count = 0
@@ -87,7 +87,7 @@ class ComputeMetricsRL:
         self.metrics = {
             f"eval/rhyme_score": 0.,       # чем меньше, тем лучше
             f"eval/meter_score": 0.,
-            f"eval/len_score": 0.,
+            f"eval/format_score": 0.,
             f"eval/semantic_score": 0.,
             f"eval/reward": 0.,
         }
@@ -120,10 +120,10 @@ class ComputeMetricsRL:
                 rewards[i] += self.coef_metrics['meter_coef'] * meter_score
 
             # LENGTH / FORMAT (твоя структура)
-            if self.coef_metrics['len_coef'] > 0. or self.eval == 'eval':
-                len_score_ = len_score(lines, f_lines)   # или text, или f_lines — как у тебя реализовано
-                self.metrics[f'eval/len_score'] += len_score_
-                rewards[i] += self.coef_metrics['len_coef'] * len_score_
+            if self.coef_metrics['format_coef'] > 0. or self.eval == 'eval':
+                format_score_ = format_score(lines, f_lines)   # или text, или f_lines — как у тебя реализовано
+                self.metrics[f'eval/format_score'] += format_score_
+                rewards[i] += self.coef_metrics['format_coef'] * format_score_
 
         rewards = torch.asarray(rewards)
 
@@ -144,18 +144,18 @@ def make_metric_fn_rl(args):
 
 '''
 
-def compute_gate(sem_scores: torch.Tensor, len_scores: torch.Tensor,
+def compute_gate(sem_scores: torch.Tensor, format_scores: torch.Tensor,
     k_sem: float = 8.0, k_len: float = 5.0,
-    sem_thr: float = 0.7, len_thr: float = 0.9,):
+    sem_thr: float = 0.7, format_thr: float = 0.9,):
     """
     sem_scores: (batch,)
-    len_scores: (batch,)
+    format_scores: (batch,)
     returns: (batch,) gate in (0,1)
     """
 
     gate_logits = (
         k_sem * (sem_scores - sem_thr) +
-        k_len * (len_scores - len_thr)
+        k_len * (format_scores - format_thr)
     )
 
     gates = torch.sigmoid(gate_logits)
@@ -174,9 +174,9 @@ def build_reward_functions(args):
         reward_funcs.append(make_meter_reward(1.))
         reward_weights.append(args.meter_coef)
 
-    if args.len_coef > 0:
-        reward_funcs.append(make_len_reward(1.))
-        reward_weights.append(args.len_coef)
+    if args.format_coef > 0:
+        reward_funcs.append(make_format_reward(1.))
+        reward_weights.append(args.format_coef)
 
     if args.sem_coef > 0:
         reward_funcs.append(make_semantic_reward(1.))
@@ -195,7 +195,7 @@ def build_reward_functions(args):
     if args.meter_coef > 0:
         meter_fn = make_meter_reward(1.)
 
-    len_fn = make_len_reward(1.)
+    format_fn = make_format_reward(1.)
     sem_fn = make_semantic_reward(1.)
 
     def gated_reward(log_metric=None, **kwargs):
@@ -203,7 +203,7 @@ def build_reward_functions(args):
 
         rhyme_scores = rhyme_fn(**kwargs) if rhyme_fn else None
         meter_scores = meter_fn(**kwargs) if meter_fn else None
-        len_scores = len_fn(**kwargs) 
+        format_scores = format_fn(**kwargs) 
         sem_scores = sem_fn(**kwargs) 
 
         # --- 2. convert to torch ---
@@ -214,20 +214,20 @@ def build_reward_functions(args):
 
         rhyme_t = to_tensor(rhyme_scores) if rhyme_scores is not None else 0
         meter_t = to_tensor(meter_scores) if meter_scores is not None else 0
-        len_t   = to_tensor(len_scores)  
+        format_t   = to_tensor(format_scores)  
         sem_t   = to_tensor(sem_scores)  
 
         # --- 3. gate ---
-        gate = compute_gate(sem_t, len_t,
+        gate = compute_gate(sem_t, format_t,
                             k_sem=getattr(args, "k_sem", 8.0),
                             k_len=getattr(args, "k_len", 5.0),
                             sem_thr=getattr(args, "sem_thr", 0.7),
-                            len_thr=getattr(args, "len_thr", 0.9))
+                            format_thr=getattr(args, "format_thr", 0.9))
 
         # --- 4. form reward ---
         form = args.rhyme_coef * rhyme_t + args.meter_coef * meter_t
 
-        reward = (1 - args.sem_coef - args.len_coef) * gate * form  + args.sem_coef * sem_t + args.len_coef * len_t
+        reward = (1 - args.sem_coef - args.format_coef) * gate * form  + args.sem_coef * sem_t + args.format_coef * format_t
         if log_metric:
             def log_stats(name, tensor):
                 if tensor is None:
@@ -237,7 +237,7 @@ def build_reward_functions(args):
 
             log_stats("rhyme", rhyme_t)
             log_stats("meter", meter_t)
-            log_stats("len", len_t)
+            log_stats("format", format_t)
             log_stats("semantic", sem_t)
             log_stats("gate", gate)
             log_stats("form", form)
