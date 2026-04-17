@@ -39,7 +39,7 @@ def train_sft(model, tokenizer, datasets, peft_config, clean_eval_data, args):
     else:
         run_name = f"{args.name_run}-{datetime.now().strftime('%m-%d-%H-%M')}"
     output_dir = os.path.join(args.output_dir, run_name + ('-pretrain' if args.pretrain else ''))
-    log_file = os.path.join(output_dir, "stdout.log")
+    log_file = os.path.join(output_dir, f"{run_name}.log")
     log_dir=os.path.join(output_dir, "runs")
 
     sys.stdout = Tee(log_file)

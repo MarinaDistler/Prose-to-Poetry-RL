@@ -23,7 +23,7 @@ def train_grpo(model, tokenizer, datasets, peft_config, args):
         args.output_dir,
         run_name 
     )
-    log_file = os.path.join(output_dir, "stdout.log")
+    log_file = os.path.join(output_dir, f"{run_name}.log")
     log_dir=os.path.join(output_dir, "runs")
 
     sys.stdout = Tee(log_file)
