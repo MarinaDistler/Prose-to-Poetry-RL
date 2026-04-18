@@ -22,7 +22,9 @@ def format_score(lines, filtered_lines):
     empty = len(lines) - len(filtered_lines)
     if len(lines) > 0 and lines[0] == 'assistant':
         empty -= 1
-    empty_score = np.exp(-empty)
+    if len(lines) > 0 and lines[-1] == '':
+        empty -= 1
+    empty_score = np.exp(-empty / 2)
 
     penalty = non_russian_penalty(''.join(filtered_lines))
     lang_score = np.exp(-5 * penalty)
