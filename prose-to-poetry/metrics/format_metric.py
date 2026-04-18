@@ -20,6 +20,8 @@ def format_score(lines, filtered_lines):
     
     # пустые строки
     empty = len(lines) - len(filtered_lines)
+    if len(lines) > 0 and lines[0] == 'assistant':
+        empty -= 1
     empty_score = np.exp(-empty)
 
     penalty = non_russian_penalty(''.join(filtered_lines))

@@ -162,7 +162,7 @@ def compute_gate(sem_scores: torch.Tensor, format_scores: torch.Tensor,
 
     return gates
 
-def build_reward_functions(args):
+def build_reward_functions_all(args):
     reward_funcs = []
     reward_weights = []
 
