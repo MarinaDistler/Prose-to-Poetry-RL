@@ -145,20 +145,17 @@ def make_metric_fn_rl(args):
 '''
 
 def compute_gate(sem_scores: torch.Tensor, format_scores: torch.Tensor,
-    k_sem: float = 8.0, k_len: float = 5.0,
+    k_sem: float = 8.0, k_format: float = 5.0,
     sem_thr: float = 0.7, format_thr: float = 0.9,):
     """
     sem_scores: (batch,)
     format_scores: (batch,)
     returns: (batch,) gate in (0,1)
     """
+    gate_sem = torch.sigmoid(k_sem * (sem_scores - sem_thr))
+    gate_fmt = torch.sigmoid(k_format * (format_scores - format_thr))
 
-    gate_logits = (
-        k_sem * (sem_scores - sem_thr) +
-        k_len * (format_scores - format_thr)
-    )
-
-    gates = torch.sigmoid(gate_logits)
+    gates = gate_sem * gate_fmt
 
     return gates
 
@@ -220,7 +217,7 @@ def build_reward_functions(args):
         # --- 3. gate ---
         gate = compute_gate(sem_t, format_t,
                             k_sem=getattr(args, "k_sem", 8.0),
-                            k_len=getattr(args, "k_len", 5.0),
+                            k_format=getattr(args, "k_format", 5.0),
                             sem_thr=getattr(args, "sem_thr", 0.7),
                             format_thr=getattr(args, "format_thr", 0.9))
 
