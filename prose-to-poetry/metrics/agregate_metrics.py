@@ -216,10 +216,10 @@ def build_reward_functions(args):
 
         # --- 3. gate ---
         gate = compute_gate(sem_t, format_t,
-                            k_sem=getattr(args, "k_sem", 8.0),
-                            k_format=getattr(args, "k_format", 5.0),
-                            sem_thr=getattr(args, "sem_thr", 0.7),
-                            format_thr=getattr(args, "format_thr", 0.9))
+                            k_sem=args.k_sem,
+                            k_format=args.k_format,
+                            sem_thr=args.sem_thr,
+                            format_thr=args.format_thr)
 
         # --- 4. form reward ---
         form = args.rhyme_coef * rhyme_t + args.meter_coef * meter_t

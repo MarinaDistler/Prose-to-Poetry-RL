@@ -141,6 +141,11 @@ if __name__ == "__main__":
     parser.add_argument('--num_generations', type=int, default=4, help='Number of generations in GRPO')
     parser.add_argument('--short_prompt', action='store_true', help='Enable short prompt')
     parser.add_argument('--add_gen_prompt', action='store_true', help='Enable add_generation_prompt')
+    
+    parser.add_argument('--k_sem', type=float, default=30, help='Semantic score coefficient in gate in rl metric')
+    parser.add_argument('--k_format', type=float, default=25, help='Format score coefficient in gate in rl metric')
+    parser.add_argument('--sem_thr', type=float, default=0.6, help='Semantic threshold in gate in rl metric')
+    parser.add_argument('--format_thr', type=float, default=0.8, help='Format threshold in gate in rl metric')
 
     args, unknown1 = parser.parse_known_args()
 

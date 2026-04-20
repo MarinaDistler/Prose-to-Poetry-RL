@@ -29,4 +29,4 @@ python3 prose-to-poetry/train.py \
   --eval_steps=90 \
   --warmup_steps=30 \
   --lr=5e-6 --rhyme_coef=0.45 --meter_coef=0.45 --format_coef=0 --sem_coef=0.1\
-  --train_mode=grpo --add_gen_prompt
+  --train_mode=grpo --add_gen_prompt --name_run=base_model_long_prompt
