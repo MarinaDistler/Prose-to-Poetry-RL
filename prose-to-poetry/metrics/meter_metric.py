@@ -125,7 +125,7 @@ def check_meter_fast(lines, meter_name, rhyme_scheme):
                 for syllable in word.syllables:
                     target = target_pattern[index % len(target_pattern)]
                     if target == 's' and syllable.stress == -1: 
-                        error_score += 0.3
+                        error_score += 0.5
                     elif target == 'u' and syllable.stress != -1: 
                         error_score += 1
                     index += 1

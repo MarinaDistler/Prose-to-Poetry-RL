@@ -21,6 +21,19 @@ python3 prose-to-poetry/train.py \
 
 python3 prose-to-poetry/train.py \
   --model='qwen' \
+  --from_pretrain=models/qwen \
+  --save_steps=30 \
+  --train_dataset=dataset/prosa_train_text.csv \
+  --test_dataset=dataset/prosa_val_text.csv \
+  --epochs=1 \
+  --log_steps=10 \
+  --eval_steps=90 \
+  --warmup_steps=30 \
+  --lr=5e-6 --rhyme_coef=0.25 --meter_coef=0.25 --format_coef=0.25 --sem_coef=0.25\
+  --train_mode=grpo --sum_reward --name_run=poetry_model_sum_reward
+
+python3 prose-to-poetry/train.py \
+  --model='qwen' \
   --save_steps=30 \
   --train_dataset=dataset/prosa_train_text.csv \
   --test_dataset=dataset/prosa_val_text.csv \

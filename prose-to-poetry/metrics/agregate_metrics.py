@@ -259,6 +259,10 @@ def build_reward_functions(args):
             if not args.sum_reward:
                 log_stats("gate", gate)
                 log_stats("form", form)
+                log_stats("gated_reward", reward)
+            else:
+                log_stats("sum_reward", reward)
+
             
         return reward.detach().cpu().tolist()
 
