@@ -12,7 +12,7 @@ python3 prose-to-poetry/train.py \
   --save_steps=30 \
   --train_dataset=dataset/prosa_train_text.csv \
   --test_dataset=dataset/prosa_val_text.csv \
-  --epochs=10 \
+  --epochs=1 \
   --log_steps=10 \
   --eval_steps=90 \
   --warmup_steps=30 \
@@ -24,9 +24,9 @@ python3 prose-to-poetry/train.py \
   --save_steps=30 \
   --train_dataset=dataset/prosa_train_text.csv \
   --test_dataset=dataset/prosa_val_text.csv \
-  --epochs=10 \
+  --epochs=1 \
   --log_steps=10 \
   --eval_steps=90 \
   --warmup_steps=30 \
-  --lr=5e-6 --rhyme_coef=0.45 --meter_coef=0.45 --format_coef=0 --sem_coef=0.1\
-  --train_mode=grpo --add_gen_prompt --name_run=base_model_long_prompt
+  --lr=5e-6 --rhyme_coef=0.45 --meter_coef=0.45 --format_coef=0.1 --sem_coef=0.\
+  --train_mode=grpo --add_gen_prompt --name_run=base_model_long_prompt_no_sem
