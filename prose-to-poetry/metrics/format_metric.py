@@ -1,8 +1,27 @@
 import numpy as np
 import re
+from pymorphy2 import MorphAnalyzer
 
 from util import filter_lines
 
+morph = MorphAnalyzer()
+
+def unknown_word_ratio(text):
+    words = re.findall(r"[а-яёА-ЯЁ]+", text)
+
+    if not words:
+        return 0.0
+
+    unknown = 0
+
+    for w in words:
+        parses = morph.parse(w)
+        best = parses[0]
+
+        if 'UNKN' in best.tag or best.score < 0.2:
+            unknown += 1
+
+    return unknown / len(words)
 
 def non_russian_penalty(text):
     # всё, что НЕ разрешено
@@ -26,10 +45,13 @@ def format_score(lines, filtered_lines):
         empty -= 1
     empty_score = np.exp(-empty / 2)
 
-    penalty = non_russian_penalty(''.join(filtered_lines))
+    text = ''.join(filtered_lines)
+    penalty = non_russian_penalty(text)
     lang_score = np.exp(-5 * penalty)
+
+    grammar_score = np.exp(-5 * unknown_word_ratio(text))
     
-    return lang_score * (0.6 * line_score + 0.4 * empty_score)
+    return grammar_score * lang_score * (0.6 * line_score + 0.4 * empty_score)
 
 def make_format_reward(coef):
     def format_reward(completions, **kwargs):

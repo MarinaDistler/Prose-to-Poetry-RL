@@ -195,36 +195,56 @@ def build_reward_functions(args):
     format_fn = make_format_reward(1.)
     sem_fn = make_semantic_reward(1.)
 
-    def gated_reward(log_metric=None, **kwargs):
+    def reward(log_metric=None, **kwargs):
         # --- 1. compute all base scores ---
 
         rhyme_scores = rhyme_fn(**kwargs) if rhyme_fn else None
         meter_scores = meter_fn(**kwargs) if meter_fn else None
-        format_scores = format_fn(**kwargs) 
-        sem_scores = sem_fn(**kwargs) 
 
         # --- 2. convert to torch ---
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         def to_tensor(x):
             return torch.tensor(x, dtype=torch.float32, device=device)
-
+        
         rhyme_t = to_tensor(rhyme_scores) if rhyme_scores is not None else 0
         meter_t = to_tensor(meter_scores) if meter_scores is not None else 0
-        format_t   = to_tensor(format_scores)  
-        sem_t   = to_tensor(sem_scores)  
 
-        # --- 3. gate ---
-        gate = compute_gate(sem_t, format_t,
-                            k_sem=args.k_sem,
-                            k_format=args.k_format,
-                            sem_thr=args.sem_thr,
-                            format_thr=args.format_thr)
+        if args.sum_reward:
+            format_scores = format_fn(**kwargs) if args.format_coef > 0 else None
+            sem_scores = sem_fn(**kwargs) if args.sem_coef > 0 else None
 
-        # --- 4. form reward ---
-        form = args.rhyme_coef * rhyme_t + args.meter_coef * meter_t
+            format_t = to_tensor(format_scores) if format_scores is not None else 0.0
+            sem_t = to_tensor(sem_scores) if sem_scores is not None else 0.0
 
-        reward = (1 - args.sem_coef - args.format_coef) * gate * form  + args.sem_coef * sem_t + args.format_coef * format_t
+            reward = (
+                args.rhyme_coef * rhyme_t +
+                args.meter_coef * meter_t +
+                args.format_coef * format_t +
+                args.sem_coef * sem_t
+            )
+
+            gate = None
+            form = None
+
+        else:
+            format_scores = format_fn(**kwargs) 
+            sem_scores = sem_fn(**kwargs) 
+
+            format_t   = to_tensor(format_scores)  
+            sem_t   = to_tensor(sem_scores)  
+
+            # --- 3. gate ---
+            gate = compute_gate(sem_t, format_t,
+                                k_sem=args.k_sem,
+                                k_format=args.k_format,
+                                sem_thr=args.sem_thr,
+                                format_thr=args.format_thr)
+
+            # --- 4. form reward ---
+            form = args.rhyme_coef * rhyme_t + args.meter_coef * meter_t
+
+            reward = (1 - args.sem_coef - args.format_coef) * gate * form  + args.sem_coef * sem_t + args.format_coef * format_t
         if log_metric:
             def log_stats(name, tensor):
                 if tensor is None:
@@ -236,9 +256,10 @@ def build_reward_functions(args):
             log_stats("meter", meter_t)
             log_stats("format", format_t)
             log_stats("semantic", sem_t)
-            log_stats("gate", gate)
-            log_stats("form", form)
+            if not args.sum_reward:
+                log_stats("gate", gate)
+                log_stats("form", form)
             
         return reward.detach().cpu().tolist()
 
-    return [gated_reward]
+    return [reward]

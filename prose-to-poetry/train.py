@@ -138,6 +138,7 @@ if __name__ == "__main__":
     parser.add_argument('--meter_coef', type=float, default=0.2, help='Meter score coefficient in rl metric')
     parser.add_argument('--format_coef', type=float, default=0.1, help='Len score coefficient in rl metric')
     parser.add_argument('--sem_coef', type=float, default=0.4, help='Semantic score coefficient in rl metric')
+    parser.add_argument('--sum_reward', action='store_true', help='Use sum instead of gating in rl reward')
     parser.add_argument('--num_generations', type=int, default=4, help='Number of generations in GRPO')
     parser.add_argument('--short_prompt', action='store_true', help='Enable short prompt')
     parser.add_argument('--add_gen_prompt', action='store_true', help='Enable add_generation_prompt')
