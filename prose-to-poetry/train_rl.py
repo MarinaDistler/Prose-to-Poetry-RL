@@ -19,12 +19,14 @@ def train_grpo(model, tokenizer, datasets, peft_config, args):
     else:
         run_name = f"{args.name_run}-{datetime.now().strftime('%m-%d-%H-%M')}-grpo"
 
+    
+    project = 'RL' 
     output_dir = os.path.join(
         args.output_dir,
+        project,
         run_name 
     )
     log_file = os.path.join(output_dir, f"{run_name}.log")
-    log_dir=os.path.join(output_dir, "runs")
 
     sys.stdout = Tee(log_file)
     sys.stderr = sys.stdout

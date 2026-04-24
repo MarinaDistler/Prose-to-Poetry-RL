@@ -1,28 +1,11 @@
 # Импорт библиотек
-import os, torch, wandb, sys
+import os, sys
 import argparse
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    BitsAndBytesConfig,
-    HfArgumentParser,
-    TrainingArguments,
-    pipeline,
-    logging,
-    DataCollatorForLanguageModeling
-)
-from peft import (
-    LoraConfig,
-    PeftModel,
-    prepare_model_for_kbit_training,
-    get_peft_model,
-)
 import pandas as pd
 from tqdm.auto import tqdm
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from models import ModelTLite, ModelQwen
-from promts import format_chat_template 
 from util import print_options
 
 

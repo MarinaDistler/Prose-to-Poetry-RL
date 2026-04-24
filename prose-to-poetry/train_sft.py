@@ -5,6 +5,7 @@ from transformers import (
 )
 from trl import SFTTrainer, SFTConfig
 from datetime import datetime
+from transformers.integrations import TensorBoardCallback
 
 from util import print_options
 from metrics import make_metric_fn
@@ -39,9 +40,9 @@ def train_sft(model, tokenizer, datasets, peft_config, clean_eval_data, args):
         run_name = f"{args.name_run}-from-{checkpoint}"
     else:
         run_name = f"{args.name_run}-{datetime.now().strftime('%m-%d-%H-%M')}"
-    output_dir = os.path.join(args.output_dir, run_name + ('-pretrain' if args.pretrain else ''))
+    project = 'SFT' + ('-pretrain' if args.pretrain else '')
+    output_dir = os.path.join(args.output_dir, project, run_name + ('-pretrain' if args.pretrain else ''))
     log_file = os.path.join(output_dir, f"{run_name}.log")
-    log_dir=os.path.join(output_dir, "runs")
 
     sys.stdout = Tee(log_file)
     sys.stderr = sys.stdout
@@ -71,7 +72,6 @@ def train_sft(model, tokenizer, datasets, peft_config, clean_eval_data, args):
         bf16=True,
         group_by_length=True,
         report_to="tensorboard",
-        logging_dir=log_dir,
         save_strategy='steps',
         save_steps=args.save_steps,              # Сохранять каждые 500 шагов
         save_total_limit=10 if args.pretrain else 2,          # Макс. число чекпоинтов (старые удаляются)
@@ -88,7 +88,7 @@ def train_sft(model, tokenizer, datasets, peft_config, clean_eval_data, args):
 
     callbacks = [ChatGenerationCallback(
         tokenizer, clean_eval_data, output_dir, batch_size=fact_batch_size,
-        compute_metrics=make_metric_fn(), generate=args.pretrain,
+        compute_metrics=make_metric_fn(), generate=args.pretrain, config=config
     )]
 
     trainer = SFTTrainer(
@@ -102,5 +102,6 @@ def train_sft(model, tokenizer, datasets, peft_config, clean_eval_data, args):
         args=training_arguments,
         callbacks=callbacks,
     )
+    trainer.remove_callback(TensorBoardCallback)
     trainer.train(resume_from_checkpoint=checkpoint)
     return trainer

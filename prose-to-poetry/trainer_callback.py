@@ -1,6 +1,5 @@
 import torch
-import wandb
-from transformers import TrainerCallback, DataCollatorWithPadding
+from transformers import DataCollatorWithPadding
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import ast
@@ -8,9 +7,53 @@ import json
 from transformers.integrations import TensorBoardCallback
 from torch.amp import autocast
 from datasets import Dataset
+import pandas as pd
 
-from promts import get_train_prompt, system_instruction, format_chat_template
+from promts import format_chat_template
 from util import clean_responses
+
+class CustomTensorBoardCallback(TensorBoardCallback):
+    def __init__(self, config):
+        super().__init__()
+        self.config = config
+        self.logged_config = False
+
+    def on_train_begin(self, args, state, control, **kwargs):
+        super().on_train_begin(args, state, control, **kwargs)
+        if not self.logged_config:
+            self.tb_writer.add_text(
+                "config",
+                f"<pre>{json.dumps(self.config, indent=2, ensure_ascii=False)}</pre>"
+            )
+            self.logged_config = True
+
+
+    def _get_mem(self):
+        if torch.cuda.is_available():
+            return {
+                "gpu/mem_allocated_gb": torch.cuda.memory_allocated() / 1e9,
+                "gpu/mem_reserved_gb": torch.cuda.memory_reserved() / 1e9,
+                "gpu/mem_max_allocated_gb": torch.cuda.max_memory_allocated() / 1e9,
+            }
+        return {}
+    
+    def log_tb(self, dict, step):
+        for name, value in dict.items():
+            self.tb_writer.add_scalar(
+                name,
+                value,
+                step
+            )
+        self.tb_writer.flush()
+
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        super().on_log(args, state, control, logs=logs, **kwargs)
+        if not state.is_world_process_zero:
+            return
+
+        if torch.cuda.is_available():
+            mem = self._get_mem()
+            self.log_tb(mem, state.global_step)
 
 def tokenize(example, tokenizer):
     tokens = tokenizer(
@@ -40,12 +83,13 @@ class CustomDataCollator:
 
 
 
-class ChatGenerationCallback(TrainerCallback):
+class ChatGenerationCallback(CustomTensorBoardCallback):
     def __init__(
                 self, tokenizer, eval_dataset, output_dir, batch_size,
                 show_examples=10, compute_metrics=None,
-                max_new_tokens=256, generate=False
+                max_new_tokens=256, generate=False, config=None
                 ):
+        super().__init__(config)
         self.tokenizer = tokenizer
         self.eval_dataset = eval_dataset
         self.show_examples = show_examples
@@ -58,6 +102,7 @@ class ChatGenerationCallback(TrainerCallback):
         self.dataloader = None  # создадим в on_train_begin
 
     def on_train_begin(self, args, state, control, model=None, **kwargs):
+        super().on_train_begin(args, state, control, **kwargs)
         self.device = model.device
         format_chat_template_ = lambda row: format_chat_template(row, self.tokenizer, self.generate, markup=None)
         self.eval_dataset = self.eval_dataset.apply(
@@ -116,70 +161,23 @@ class ChatGenerationCallback(TrainerCallback):
 
             if self.compute_metrics:
                 self.compute_metrics(
-                    clean_responses(responses), self.eval_dataset.loc[index, 'rhyme_scheme'], compute_result=False
+                    clean_responses(responses), 
+                    self.eval_dataset.loc[index, 'rhyme_scheme'], 
+                    self.eval_dataset.loc[index, 'meter'], 
+                    compute_result=False
                 )
 
             count += len(index)
         
         if self.compute_metrics:
             metrics = self.compute_metrics(None, None, compute_result=True)
-            metrics['eval/step'] = state.global_step
-            wandb.log(metrics)
+            self.log_tb(metrics, state.global_step)
 
-        # Логируем в W&B
+        # Логируем примеры
         if to_table:
-            table = wandb.Table(columns=["User Prompt", "Generated", "Ground Truth"])
-            for item in to_table:
-                table.add_data(item["User Prompt"], item["Generated"], item["Ground Truth"])
-            
-            wandb.log({
-                f"predictions_step_{state.global_step}": table,
-                "eval/step": state.global_step
-            })
-
-        # Сохраняем модель при каждой валидации
-        checkpoint_dir = f"{self.output_dir}/step-{state.global_step}"
-        model.save_pretrained(checkpoint_dir, safe_serialization=True)
-        self.tokenizer.save_pretrained(checkpoint_dir)
-        print(f"Чекпоинт сохранён в {checkpoint_dir}")
+            print(f"Global step: {state.global_step}")
+            df = pd.DataFrame(to_table)
+            print(df.to_markdown(index=False))
 
 
-class CustomTensorBoardCallback(TensorBoardCallback):
-    def __init__(self, config):
-        super().__init__()
-        self.config = config
-        self.logged_config = False
 
-    def on_train_begin(self, args, state, control, **kwargs):
-        super().on_train_begin(args, state, control, **kwargs)
-        if not self.logged_config:
-            self.tb_writer.add_text(
-                "config",
-                f"<pre>{json.dumps(self.config, indent=2, ensure_ascii=False)}</pre>"
-            )
-            self.logged_config = True
-
-
-    def _get_mem(self):
-        if torch.cuda.is_available():
-            return {
-                "gpu/mem_allocated_gb": torch.cuda.memory_allocated() / 1e9,
-                "gpu/mem_reserved_gb": torch.cuda.memory_reserved() / 1e9,
-                "gpu/mem_max_allocated_gb": torch.cuda.max_memory_allocated() / 1e9,
-            }
-        return {}
-
-    def on_log(self, args, state, control, logs=None, **kwargs):
-        super().on_log(args, state, control, logs=logs, **kwargs)
-        if not state.is_world_process_zero:
-            return
-
-        if torch.cuda.is_available():
-            mem = self._get_mem()
-            for name, value in mem.items():
-                self.tb_writer.add_scalar(
-                    name,
-                    value,
-                    state.global_step
-                )
-            self.tb_writer.flush()

@@ -43,3 +43,27 @@ python3 prose-to-poetry/train.py \
   --warmup_steps=30 \
   --lr=5e-6 --rhyme_coef=0.45 --meter_coef=0.45 --format_coef=0.1 --sem_coef=0.\
   --train_mode=grpo --add_gen_prompt --name_run=base_model_long_prompt_no_sem
+
+  sft pretrain
+  python3 prose-to-poetry/train.py \
+  --pretrain \
+  --model='qwen' \
+  --save_steps=150 \
+  --train_dataset=dataset/trainset_pretrain \
+  --epochs=2 \
+  --log_steps=10 \
+  --markup=stanzas \
+  --warmup_steps=320 \
+  --lr=2e-5 --add_gen_prompt --name_run=sft_long_prompt
+
+sft
+  python3 prose-to-poetry/train.py \
+  --model='qwen' \
+  --from_pretrain=output/qwen-05-22-17-18-pretrain/checkpoint-10738 \
+  --save_steps=150 \
+  --train_dataset=dataset/trainset.csv \
+  --epochs=2 \
+  --log_steps=10 \
+  --markup=rhyme_markup \
+  --warmup_steps=30 \
+  --lr=5e-6 --add_gen_prompt --name_run=sft_long_prompt
