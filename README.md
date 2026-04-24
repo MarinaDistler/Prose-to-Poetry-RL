@@ -16,8 +16,8 @@ python3 prose-to-poetry/train.py \
   --log_steps=10 \
   --eval_steps=90 \
   --warmup_steps=30 \
-  --lr=5e-6 --rhyme_coef=0.5 --meter_coef=0.5 --format_coef=0.1 --sem_coef=0.1\
-  --train_mode=grpo
+  --lr=5e-6 --rhyme_coef=0.5 --meter_coef=0.5 --format_coef=0.1 --sem_coef=0.\
+  --train_mode=grpo --name_run=poetry_model_no_sem_unknown
 
 python3 prose-to-poetry/train.py \
   --model='qwen' \

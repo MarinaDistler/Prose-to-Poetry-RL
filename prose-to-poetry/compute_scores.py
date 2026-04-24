@@ -1,5 +1,5 @@
 # Импорт библиотек
-import os, torch, wandb, sys
+import os, torch, sys
 import argparse
 import pandas as pd
 from tqdm.auto import tqdm
@@ -9,33 +9,33 @@ import numpy as np
 bertscore = load("bertscore")
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from util import print_options, text_to_lines
-from metrics import check_rhyme_scheme, check_meter
+from util import print_options, filter_lines
+from metrics import check_rhyme_scheme, check_meter_fast, encode_sent, embedding_sim_score, format_score
     
-def check_len(lines):
-    if len(lines) == 4 or len(lines) == 8:
-        return 1.
-    return 0.
+
 
 def eval_poetry(inputs, outputs):
-    result = pd.DataFrame(columns=['BERTscore', 'rhyme_score', 'meter_score', 'len_score'])
+    result = pd.DataFrame(columns=['BERTscore', 'semantic_score', 'rhyme_score', 'meter_score', 'format_score'])
+    input_emb = encode_sent(inputs)
     for name, outputs_ in outputs.items():
         bertscore_ = bertscore.compute(predictions=outputs_, references=inputs['text'], lang="ru")
+        sem_scores = embedding_sim_score(outputs_, input_emb)
         rhyme_scores = []
         meter_scores = []
-        len_scores = []
+        format_scores = []
         for i, output in tqdm(enumerate(outputs_)):
-            lines = text_to_lines(output)
-            len_scores.append(check_len(lines))
-            lines = lines[:8]
-            rhyme_scores.append(check_rhyme_scheme(lines, inputs.iloc[i]['rhyme_scheme']))
-            meter_scores.append(check_meter(lines, inputs.iloc[i]['meter']))
+            lines = output.split('\n')
+            f_lines = filter_lines(lines)
+            rhyme_scores.append(check_rhyme_scheme(f_lines, inputs.iloc[i]['rhyme_scheme']))
+            meter_scores.append(check_meter_fast(f_lines, inputs.iloc[i]['meter'], inputs.iloc[i]['rhyme_scheme']))
+            format_scores.append(format_score(lines, f_lines))
             
         res = {
             'BERTscore': np.mean(bertscore_["f1"]),
+            'semantic_score': np.mean(sem_scores),
             'rhyme_score': np.mean(rhyme_scores),
             'meter_score': np.mean(meter_scores),
-            'len_score': np.mean(len_scores),
+            'format_score': np.mean(format_scores),
         }
         result.loc[name] = res
         print(name, res)
