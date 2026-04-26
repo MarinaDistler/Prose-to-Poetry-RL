@@ -23,7 +23,7 @@ def main(args):
     result = []
 
     for _, row in tqdm(eval_data.iterrows()):
-        result.append(model.use(row['text'], row['rhyme_scheme'], row['meter'], clean=not args.not_clean))
+        result.append(model.use(row['input'], row['rhyme_scheme'], row['meter'], clean=not args.not_clean))
 
     df = pd.DataFrame({args.name: result}, index=eval_data.index)
     df.to_csv(args.output_dir + f'{args.name}.csv')
