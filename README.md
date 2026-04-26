@@ -64,6 +64,12 @@ sft
   --train_dataset=dataset/trainset.csv \
   --epochs=2 \
   --log_steps=10 \
-  --markup=rhyme_markup \
+  --markup=stanzas \
   --warmup_steps=30 \
   --lr=5e-6 --add_gen_prompt --name_run=sft_long_prompt
+
+  python3 prose-to-poetry/eval.py \
+  --name=qwen \
+  --model=qwen \
+  --checkpoint=models/qwen \
+  --markup=stanzas
