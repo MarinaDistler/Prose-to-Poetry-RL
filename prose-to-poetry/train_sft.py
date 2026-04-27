@@ -70,7 +70,6 @@ def train_sft(model, tokenizer, datasets, peft_config, clean_eval_data, args):
         learning_rate=args.lr,
         fp16=False,
         bf16=True,
-        group_by_length=True,
         report_to="tensorboard",
         save_strategy='steps',
         save_steps=args.save_steps,              # Сохранять каждые 500 шагов

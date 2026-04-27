@@ -54,7 +54,7 @@ python3 prose-to-poetry/train.py \
   --log_steps=10 \
   --markup=stanzas \
   --warmup_steps=320 \
-  --lr=2e-5 --add_gen_prompt --name_run=sft_long_prompt
+  --lr=2e-5 --add_gen_prompt --name_run=sft_long_prompt_pretrain
 
 sft
   python3 prose-to-poetry/train.py \
