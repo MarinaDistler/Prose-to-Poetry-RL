@@ -9,10 +9,10 @@ from transformers.integrations import TensorBoardCallback
 
 from util import print_options
 from metrics import make_metric_fn
-from trainer_callback import ChatGenerationCallback
+from trainer_callback import ChatGenerationCallback, tokenize_from_chat_json
 from util import Tee
 
-
+'''
 class TrainDataCollator:
     def __init__(self, tokenizer, model):
         self.tokenizer = tokenizer
@@ -31,6 +31,7 @@ class TrainDataCollator:
         # Теперь можно паддить
         batch = self.pad(features)
         return batch
+'''
 
 def train_sft(model, tokenizer, datasets, peft_config, clean_eval_data, args):
     checkpoint = None if args.checkpoint == '' else args.checkpoint
@@ -76,28 +77,36 @@ def train_sft(model, tokenizer, datasets, peft_config, clean_eval_data, args):
         save_total_limit=10 if args.pretrain else 2,          # Макс. число чекпоинтов (старые удаляются)
         load_best_model_at_end=True, # Загружать лучшую модель в конце
         metric_for_best_model="eval_loss",  # Критерий выбора лучшей модели
-        max_seq_length=512,
         packing= False,
-    )
-
-    data_collator = TrainDataCollator(
-        tokenizer=tokenizer,
-        model=model,
     )
 
     callbacks = [ChatGenerationCallback(
         tokenizer, clean_eval_data, output_dir, batch_size=fact_batch_size,
         compute_metrics=make_metric_fn(), generate=args.pretrain, config=config
     )]
+    
+    datasets["train"] = datasets["train"].map(
+        lambda x: tokenize_from_chat_json(x, tokenizer),
+        remove_columns=datasets["train"].column_names
+    )
+    datasets["test"] = datasets["test"].map(
+        lambda x: tokenize_from_chat_json(x, tokenizer),
+        remove_columns=datasets["test"].column_names
+    )
 
     trainer = SFTTrainer(
         model=model,
-        processing_class=tokenizer,
+        #processing_class=tokenizer,
         train_dataset=datasets["train"],
         eval_dataset=datasets["test"],
         peft_config=peft_config, # сам адаптер, который создали ранее
-        #dataset_text_field="chat",
-        data_collator=data_collator, # был импортирован
+        data_collator=DataCollatorForSeq2Seq(
+            tokenizer=tokenizer,
+            model=model,
+            label_pad_token_id=-100,
+            pad_to_multiple_of=8,
+            padding=True
+        ), 
         args=training_arguments,
         callbacks=callbacks,
     )

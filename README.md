@@ -42,7 +42,7 @@ python3 prose-to-poetry/train.py \
   --eval_steps=90 \
   --warmup_steps=30 \
   --lr=5e-6 --rhyme_coef=0.45 --meter_coef=0.45 --format_coef=0.1 --sem_coef=0.\
-  --train_mode=grpo --add_gen_prompt --name_run=base_model_long_prompt_no_sem
+  --train_mode=grpo --name_run=base_model_long_prompt_no_sem
 
   sft pretrain
   python3 prose-to-poetry/train.py \
@@ -54,7 +54,7 @@ python3 prose-to-poetry/train.py \
   --log_steps=10 \
   --markup=stanzas \
   --warmup_steps=320 \
-  --lr=2e-5 --add_gen_prompt --name_run=sft_long_prompt_pretrain
+  --lr=2e-5 --name_run=sft_long_prompt_pretrain
 
 sft
   python3 prose-to-poetry/train.py \
@@ -66,7 +66,7 @@ sft
   --log_steps=10 \
   --markup=stanzas \
   --warmup_steps=30 \
-  --lr=5e-6 --add_gen_prompt --name_run=sft_long_prompt
+  --lr=5e-6  --name_run=sft_long_prompt
 
   python3 prose-to-poetry/eval.py \
   --name=qwen \

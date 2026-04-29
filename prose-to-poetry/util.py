@@ -14,7 +14,7 @@ from tqdm import tqdm
 import ast
 from torch.amp import autocast
 
-from promts import get_train_prompt, system_instruction
+from prompts import get_train_prompt, system_instruction
 
 def clean_responses(responses):
     for i in range(len(responses)):

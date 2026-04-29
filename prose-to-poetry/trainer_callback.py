@@ -1,5 +1,5 @@
 import torch
-from transformers import DataCollatorWithPadding
+from transformers import DataCollatorForSeq2Seq
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import ast
@@ -9,7 +9,7 @@ from torch.amp import autocast
 from datasets import Dataset
 import pandas as pd
 
-from promts import format_chat_template
+from prompts import format_chat_template
 from util import clean_responses
 
 class CustomTensorBoardCallback(TensorBoardCallback):
@@ -55,29 +55,58 @@ class CustomTensorBoardCallback(TensorBoardCallback):
             mem = self._get_mem()
             self.log_tb(mem, state.global_step)
 
-def tokenize(example, tokenizer):
-    tokens = tokenizer(
-        example["text"],
-        truncation=True,
-        max_length=512,
-        padding=False,  # Padding будет позже в коллаторе
-    )
-    tokens['index'] = example['index']
-    return tokens
+def tokenize_from_chat_json(example, tokenizer, max_length=512, train=True):
+    """
+    JSON (system/user/assistant) -> input_ids + attention_mask + labels
+    """
+    
+    messages = example["json"]
+
+    full_ids = tokenizer.apply_chat_template(
+        messages,
+        tokenize=True,
+        add_generation_prompt=not train
+    )['input_ids']
+
+    # truncate
+    full_ids = full_ids[:max_length]
+    
+    attention_mask = [1] * len(full_ids)
+
+    if train:
+        if len(messages) != 3:
+            raise ValueError(f"len of message shold be 3 not {len(messages)}")
+        prompt_messages = messages[:-1]  # remove assistant
+
+        prompt_ids = tokenizer.apply_chat_template(
+            prompt_messages,
+            tokenize=True,
+            add_generation_prompt=True   # важно: даёт границу assistant
+        )['input_ids']
+        prompt_len = min(len(prompt_ids), max_length)
+        labels = [-100] * prompt_len + full_ids[prompt_len:]
+        labels = labels[:len(full_ids)]
+
+        return {
+            "input_ids": full_ids,
+            "attention_mask": attention_mask,
+            "labels": labels,
+        }
+    else:
+        return {
+            "input_ids": full_ids,
+            "attention_mask": attention_mask,
+        }
 
 
 class CustomDataCollator:
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
-        self.collator = DataCollatorWithPadding(tokenizer, return_tensors="pt")
 
     def __call__(self, features):
-        # Вытащим index перед паддингом
         indices = [f["index"] for f in features]
         features = [{k: v for k, v in f.items() if k != "index"} for f in features]
-        
-        # Паддим всё остальное
-        batch = self.collator(features)
+        batch = self.tokenizer.pad(features, return_tensors="pt")
         batch["index"] = indices  # вернём индексы отдельно
         return batch
 
@@ -109,9 +138,9 @@ class ChatGenerationCallback(CustomTensorBoardCallback):
             format_chat_template_, axis=1
         )
         self.eval_dataset['index'] = self.eval_dataset.index
-        dataset = Dataset.from_pandas(self.eval_dataset[['text', 'index']])
-        tokenize_ = lambda ex: tokenize(ex, self.tokenizer)
-        tokenized_dataset = dataset.map(tokenize_, remove_columns=["text"])
+        dataset = Dataset.from_pandas(self.eval_dataset[['json', 'index']])
+        tokenize_ = lambda ex: tokenize_from_chat_json(ex, self.tokenizer, train=False)
+        tokenized_dataset = dataset.map(tokenize_, remove_columns=["json"])
         collator = CustomDataCollator(tokenizer=self.tokenizer)
         self.dataloader = DataLoader(
             tokenized_dataset,
@@ -119,11 +148,6 @@ class ChatGenerationCallback(CustomTensorBoardCallback):
             shuffle=False,
             collate_fn=collator
         )
-
-        # check tokenizer
-        ids = self.tokenizer.encode('\n'.join(ast.literal_eval(self.eval_dataset.iloc[0]['rhyme_stress_markup'])))
-        decoded = [self.tokenizer.decode([id]) for id in ids]
-        print("Tokenized:", decoded)
 
     def on_evaluate(self, args, state, control, model=None, **kwargs):
         if not model:
@@ -140,21 +164,20 @@ class ChatGenerationCallback(CustomTensorBoardCallback):
                 generated_ids = model.generate(
                     input_ids=input_ids,
                     attention_mask=attention_mask,
-                    max_new_tokens=self.max_new_tokens
+                    max_new_tokens=self.max_new_tokens,
                 )
             generated_ids = [
                 output_ids[len(input_ids):] for input_ids, output_ids in zip(input_ids, generated_ids)
             ]
 
-            responses = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=False)
-            responses = [text.replace("<|im_start|>assistant\n", "").replace("<|im_end|>", "").replace("<|endoftext|>", "") for text in responses]
+            responses = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
             
             if count < self.show_examples:
                 original_rows = [self.eval_dataset.loc[i] for i in index]
                 for row, response in zip(original_rows, responses):
                     
                     to_table.append({
-                        "User Prompt": row["promt"],
+                        "User Prompt": row["user_prompt"],
                         "Generated": response,
                         "Ground Truth": '\n'.join(ast.literal_eval(row["stanzas"]))
                     })
@@ -170,7 +193,7 @@ class ChatGenerationCallback(CustomTensorBoardCallback):
             count += len(index)
         
         if self.compute_metrics:
-            metrics = self.compute_metrics(None, None, compute_result=True)
+            metrics = self.compute_metrics(None, None, None, compute_result=True)
             self.log_tb(metrics, state.global_step)
 
         # Логируем примеры

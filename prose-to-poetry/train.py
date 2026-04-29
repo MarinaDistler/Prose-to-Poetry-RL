@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from models import ModelTLite, ModelQwen
-from promts import format_chat_template 
+from prompts import format_chat_template 
 from util import print_options, seed_everything
 from metrics import make_metric_fn, encode_sent
 from trainer_callback import ChatGenerationCallback
@@ -72,7 +72,7 @@ def main(args):
     markup = args.markup if args.train_mode == 'sft' else None
 
     format_chat_template_ = lambda row: format_chat_template(row, model.tokenizer, args.pretrain, markup=markup, 
-                                                             short=args.short_prompt, add_generation_prompt=args.add_gen_prompt)
+                                                             short=args.short_prompt)
     dataset['train'] = dataset['train'].apply(
         format_chat_template_, axis=1
     )
@@ -81,8 +81,8 @@ def main(args):
     )
     if args.train_mode == 'sft':
         dataset = {
-            'train': Dataset.from_pandas(dataset['train'][['text']]),
-            'test': Dataset.from_pandas(dataset['test'][['text']]),
+            'train': Dataset.from_pandas(dataset['train'][['text', 'json']]),
+            'test': Dataset.from_pandas(dataset['test'][['text', 'json']]),
         }
     elif args.train_mode == 'grpo':
         dataset['train']['input_emb'] = encode_sent(dataset['train']['input'].tolist()).tolist()
@@ -142,7 +142,6 @@ if __name__ == "__main__":
     parser.add_argument('--sum_reward', action='store_true', help='Use sum instead of gating in rl reward')
     parser.add_argument('--num_generations', type=int, default=4, help='Number of generations in GRPO')
     parser.add_argument('--short_prompt', action='store_true', help='Enable short prompt')
-    parser.add_argument('--add_gen_prompt', action='store_true', help='Enable add_generation_prompt')
     
     parser.add_argument('--k_sem', type=float, default=30, help='Semantic score coefficient in gate in rl metric')
     parser.add_argument('--k_format', type=float, default=25, help='Format score coefficient in gate in rl metric')

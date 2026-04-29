@@ -10,11 +10,11 @@ from util import print_options
 
 
 def main(args):
-    quantization = False
+    quantization = (args.checkpoint != '')
     if args.model == 't-lite':
-        model = ModelTLite(quantization=quantization, path=args.checkpoint, generate=args.generate, markup=args.markup)
+        model = ModelTLite(quantization=quantization, path=args.checkpoint, generate=args.generate)
     elif args.model == 'qwen':
-        model = ModelQwen(quantization=quantization, path=args.checkpoint, generate=args.generate, markup=args.markup)
+        model = ModelQwen(quantization=quantization, path=args.checkpoint, generate=args.generate)
     if args.checkpoint != '':
         model.save_for_inference(args.checkpoint)
         model.load_for_inference(args.checkpoint)
@@ -37,7 +37,6 @@ if __name__ == "__main__":
     parser.add_argument('--model', type=str, default='t-lite', choices=['t-lite', 'qwen'], help="Model type: 't-lite' or 'qwen'")
     parser.add_argument('--generate', action='store_true', help='If set, runs poetry generation instead of prose-to-poetry conversion')
     parser.add_argument('--not_clean', action='store_true', help='If set, disables postprocessing (doesn`t clean the output from markup)')
-    parser.add_argument('--markup', type=str, default='stanzas', choices=['rhyme_markup', 'stress_markup', 'stanzas','rhyme_stress_markup'], help='The used markup')
 
     args, unknown1 = parser.parse_known_args()
 

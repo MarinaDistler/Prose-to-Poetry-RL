@@ -97,23 +97,27 @@ def generate_model_answers(model_func, file_path='test_text.txt', from_id=0, to_
     return pd.concat(answers)
 
 
-def format_chat_template(row, tokenizer, generate=False, markup='stanzas', short=False, add_generation_prompt=False):
+def format_chat_template(row, tokenizer, generate=False, markup='stanzas', short=False):
     if generate:
-        promt = get_train_prompt(None, row['rhyme_scheme'], row['meter'])
+        prompt = get_train_prompt(None, row['rhyme_scheme'], row['meter'])
         row_json = [
             {"role": "system", "content": system_instruction_generate},
-            {"role": "user", "content": promt},
+            {"role": "user", "content": prompt},
         ]
     else:
-        promt = get_train_prompt(row['input'], row['rhyme_scheme'], row['meter'], short=short)
+        prompt = get_train_prompt(row['input'], row['rhyme_scheme'], row['meter'], short=short)
         row_json = [
             {"role": "system", "content": system_instruction if not short else system_instruction_short},
-            {"role": "user", "content": promt},
+            {"role": "user", "content": prompt},
         ]
     if markup is not None:
         row_json.append(
             {"role": "assistant", "content": '\n'.join(ast.literal_eval(row[markup])) + '\n'}
         )
-    row['promt'] = promt
+        add_generation_prompt = False
+    else:
+        add_generation_prompt = True
+    row['user_prompt'] = prompt
+    row["json"] = row_json
     row["text"] = tokenizer.apply_chat_template(row_json, tokenize=False, add_generation_prompt=add_generation_prompt)
     return row

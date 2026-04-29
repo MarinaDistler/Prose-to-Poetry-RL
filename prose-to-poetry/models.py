@@ -4,13 +4,14 @@ from peft import PeftModel
 import os
 import re
 
-from promts import get_train_prompt, get_prompt, system_instruction, system_instruction_generate
+from prompts import get_train_prompt, get_prompt, system_instruction, system_instruction_generate
 from util import clean_responses
 
 class BaseModel:
-    def __init__(self, model_name, path, quantization=False, generate=False, markup='stanzas', train_mode='sft'):
+    def __init__(self, model_name, path, quantization=False, generate=False, train_mode='sft'):
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.tokenizer.padding_side = "left"
+        self.tokenizer.truncation_side = "left"
         self.quantization = quantization
         self.generate = generate
         self.train_mode = train_mode
@@ -34,6 +35,14 @@ class BaseModel:
         if path != '':
             self.model = PeftModel.from_pretrained(self.model, path)
             self.model.enable_adapter_layers()
+        
+        self.model.config.pad_token_id = self.tokenizer.pad_token_id
+        self.model.config.eos_token_id = self.tokenizer.eos_token_id
+        self.model.config.bos_token_id = self.tokenizer.bos_token_id
+
+        self.model.generation_config.pad_token_id = self.tokenizer.pad_token_id
+        self.model.generation_config.eos_token_id = self.tokenizer.eos_token_id
+        self.model.generation_config.bos_token_id = self.tokenizer.bos_token_id
 
         self.model.cuda()
 
@@ -58,16 +67,10 @@ class BaseModel:
         if self.generate:
             system_instruction_ = system_instruction_generate
             text_ = None
-        if self.quantization:
-            messages = [
-                {"role": "system", "content": system_instruction_},
-                {"role": "user", "content": get_train_prompt(text_, scheme, meter)}
-            ]
-        else:
-            messages = [
-                {"role": "system", "content": system_instruction_},
-                {"role": "user", "content": get_prompt(text_, scheme, meter)}
-            ]
+        messages = [
+            {"role": "system", "content": system_instruction_},
+            {"role": "user", "content": get_train_prompt(text_, scheme, meter)}
+        ]
         text = self.tokenizer.apply_chat_template(
             messages,
             tokenize=False,
@@ -84,8 +87,7 @@ class BaseModel:
             output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
         ]
 
-        response = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=False)[0]
-        response = response.replace("<|im_start|>assistant\n", "").replace("<|im_end|>", "").replace("<|endoftext|>", "")
+        response = self.tokenizer.batch_decode(generated_ids)[0]
         if clean:
             response = clean_responses([response])[0]
         return response
@@ -94,10 +96,10 @@ class ModelQwen(BaseModel):
     def __init__(self, quantization=False, path='', generate=False, markup='stanzas', train_mode='sft'):
         super().__init__(
             'Qwen/Qwen2.5-3B-Instruct', path, 
-            quantization, generate, markup=markup, train_mode=train_mode)
+            quantization, generate, train_mode=train_mode)
 
 class ModelTLite(BaseModel):
     def __init__(self, quantization=False, path='', generate=False, markup='stanzas', train_mode='sft'):
         super().__init__(
             "t-tech/T-lite-it-1.0", path, quantization, 
-            generate, markup=markup, train_mode=train_mode)
+            generate, train_mode=train_mode)
