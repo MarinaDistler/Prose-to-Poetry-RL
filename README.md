@@ -48,9 +48,9 @@ python3 prose-to-poetry/train.py \
   python3 prose-to-poetry/train.py \
   --pretrain \
   --model='qwen' \
-  --save_steps=150 \
+  --save_steps=150 --eval_steps=150\
   --train_dataset=dataset/trainset_pretrain \
-  --epochs=2 \
+  --epochs=1 \
   --log_steps=10 \
   --markup=stanzas \
   --warmup_steps=320 \
@@ -60,13 +60,13 @@ sft
   python3 prose-to-poetry/train.py \
   --model='qwen' \
   --from_pretrain=output/qwen-05-22-17-18-pretrain/checkpoint-10738 \
-  --save_steps=150 \
+  --save_steps=150 --eval_steps=150\
   --train_dataset=dataset/trainset.csv \
-  --epochs=2 \
+  --epochs=1 \
   --log_steps=10 \
   --markup=stanzas \
   --warmup_steps=30 \
-  --lr=5e-6  --name_run=sft_long_prompt
+  --lr=5e-6  --name_run=sft_long_prompt 
 
   python3 prose-to-poetry/eval.py \
   --name=qwen \

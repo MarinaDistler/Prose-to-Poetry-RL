@@ -44,7 +44,8 @@ class BaseModel:
         self.model.generation_config.eos_token_id = self.tokenizer.eos_token_id
         self.model.generation_config.bos_token_id = self.tokenizer.bos_token_id
 
-        self.model.cuda()
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model.to(device)
 
     def save_for_inference(self, path):
         base_model = self.model

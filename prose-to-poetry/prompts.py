@@ -13,7 +13,14 @@ system_instruction = '''Вы – талантливый поэт, создающ
 system_instruction_short = '''Перефразируй текст в стих.
 Соблюдай рифму и метр.
 Без пояснений, только стих на русском в 4 строки.
-Сохрани смысл.
+Следуй правилам русского языка.
+Сохраняй смысл.
+'''
+
+system_instruction_generate_short = '''Напиши стих.
+Соблюдай рифму и метр.
+Без пояснений, только стих на русском в 4 строки.
+Следуй правилам русского языка.
 '''
 
 system_instruction_generate = '''Вы – талантливый поэт, создающий русскую поэзию. При написании стихотворения соблюдайте следующие правила:\n''' \
@@ -99,9 +106,9 @@ def generate_model_answers(model_func, file_path='test_text.txt', from_id=0, to_
 
 def format_chat_template(row, tokenizer, generate=False, markup='stanzas', short=False):
     if generate:
-        prompt = get_train_prompt(None, row['rhyme_scheme'], row['meter'])
+        prompt = get_train_prompt(None, row['rhyme_scheme'], row['meter'], short=short)
         row_json = [
-            {"role": "system", "content": system_instruction_generate},
+            {"role": "system", "content": system_instruction_generate if not short else system_instruction_generate_short},
             {"role": "user", "content": prompt},
         ]
     else:

@@ -1,26 +1,19 @@
 # Импорт библиотек
 import os, torch, sys
 import argparse
-from transformers import (
-    DataCollatorForSeq2Seq
-)
 from peft import (
     LoraConfig,
 )
-from trl import SFTTrainer, SFTConfig
 from datasets import Dataset
 import pandas as pd
 from pathlib import Path
-from datetime import datetime
-from torch.utils.data import DataLoader
 
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from models import ModelTLite, ModelQwen
 from prompts import format_chat_template 
 from util import print_options, seed_everything
-from metrics import make_metric_fn, encode_sent
-from trainer_callback import ChatGenerationCallback
+from metrics import encode_sent
 from train_rl import train_grpo
 from train_sft import train_sft
 
