@@ -25,7 +25,6 @@ def encode_sent(texts, batch_size=8):
             model_output = model_sent(**encoded)
 
         embeddings = mean_pooling(model_output, encoded['attention_mask'])
-        #embeddings = F.normalize(embeddings, p=2, dim=1)
 
         all_embeddings.append(embeddings.cpu())
     return torch.cat(all_embeddings, dim=0)
