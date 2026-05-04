@@ -82,7 +82,7 @@ def train_sft(model, tokenizer, datasets, peft_config, clean_eval_data, args):
 
     callbacks = [ChatGenerationCallback(
         tokenizer, clean_eval_data, output_dir, batch_size=fact_batch_size,
-        compute_metrics=make_metric_fn(), generate=args.pretrain, config=config
+        compute_metrics=make_metric_fn(), generate=args.pretrain, config=config, short_prompt=not args.long_prompt
     )]
     
     datasets["train"] = datasets["train"].map(

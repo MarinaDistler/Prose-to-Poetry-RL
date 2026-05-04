@@ -116,7 +116,7 @@ class ChatGenerationCallback(CustomTensorBoardCallback):
     def __init__(
                 self, tokenizer, eval_dataset, output_dir, batch_size,
                 show_examples=10, compute_metrics=None,
-                max_new_tokens=256, generate=False, config=None
+                max_new_tokens=256, generate=False, config=None, short_prompt=True
                 ):
         super().__init__(config)
         self.tokenizer = tokenizer
@@ -129,11 +129,12 @@ class ChatGenerationCallback(CustomTensorBoardCallback):
         self.max_new_tokens = max_new_tokens
         self.device = None  # будет установлен позже
         self.dataloader = None  # создадим в on_train_begin
+        self.short_prompt = short_prompt
 
     def on_train_begin(self, args, state, control, model=None, **kwargs):
         super().on_train_begin(args, state, control, **kwargs)
         self.device = model.device
-        format_chat_template_ = lambda row: format_chat_template(row, self.tokenizer, self.generate, markup=None)
+        format_chat_template_ = lambda row: format_chat_template(row, self.tokenizer, self.generate, markup=None, short=self.short_prompt)
         self.eval_dataset = self.eval_dataset.apply(
             format_chat_template_, axis=1
         )

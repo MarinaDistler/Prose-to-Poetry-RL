@@ -104,7 +104,7 @@ def generate_model_answers(model_func, file_path='test_text.txt', from_id=0, to_
     return pd.concat(answers)
 
 
-def format_chat_template(row, tokenizer, generate=False, markup='stanzas', short=False):
+def format_chat_template(row, tokenizer, generate=False, markup='stanzas', short=True):
     if generate:
         prompt = get_train_prompt(None, row['rhyme_scheme'], row['meter'], short=short)
         row_json = [
