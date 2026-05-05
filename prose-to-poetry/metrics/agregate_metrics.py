@@ -9,7 +9,7 @@ from .rhyme_metric import check_rhyme_scheme, make_rhyme_reward
 from .meter_metric import check_meter_fast, make_meter_reward
 from .format_metric import format_score, make_format_reward
 from .semantic_metric import embedding_sim_score, make_semantic_reward
-from .language_score import make_language_reward
+from .language_metric import make_language_reward
 
 from util import filter_lines
 
