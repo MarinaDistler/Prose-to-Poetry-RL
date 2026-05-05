@@ -8,13 +8,12 @@ from prompts import get_train_prompt, get_prompt, system_instruction, system_ins
 from util import clean_responses
 
 class BaseModel:
-    def __init__(self, model_name, path, quantization=False, generate=False, train_mode='sft'):
+    def __init__(self, model_name, path, quantization=False, generate=False):
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.tokenizer.padding_side = "left"
         self.tokenizer.truncation_side = "left"
         self.quantization = quantization
         self.generate = generate
-        self.train_mode = train_mode
         if quantization: 
             bnb_config = BitsAndBytesConfig(
                 load_in_4bit=True,
@@ -94,13 +93,13 @@ class BaseModel:
         return response
 
 class ModelQwen(BaseModel):
-    def __init__(self, quantization=False, path='', generate=False, markup='stanzas', train_mode='sft'):
+    def __init__(self, quantization=False, path='', generate=False):
         super().__init__(
             'Qwen/Qwen2.5-3B-Instruct', path, 
-            quantization, generate, train_mode=train_mode)
+            quantization, generate)
 
 class ModelTLite(BaseModel):
-    def __init__(self, quantization=False, path='', generate=False, markup='stanzas', train_mode='sft'):
+    def __init__(self, quantization=False, path='', generate=False):
         super().__init__(
             "t-tech/T-lite-it-1.0", path, quantization, 
-            generate, train_mode=train_mode)
+            generate)

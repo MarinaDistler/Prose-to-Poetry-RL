@@ -33,7 +33,7 @@ def non_russian_penalty(text):
     ratio = len(forbidden) / len(text)
     return ratio  # от 0 до 1
 
-def format_score(lines, filtered_lines):
+def format_score(lines, filtered_lines, use_unknown_ratio=True):
     # число строк (идеал = 4)
     line_score = np.exp(-abs(len(filtered_lines) - 4))   # плавно: 1 → 0.37 → 0.14
     
@@ -49,11 +49,14 @@ def format_score(lines, filtered_lines):
     penalty = non_russian_penalty(text)
     lang_score = np.exp(-5 * penalty)
 
-    grammar_score = np.exp(-5 * unknown_word_ratio(text))
+    if use_unknown_ratio:
+        grammar_score = np.exp(-5 * unknown_word_ratio(text))
+    else:
+        grammar_score = 1.
     
     return grammar_score * lang_score * (0.6 * line_score + 0.4 * empty_score)
 
-def make_format_reward(coef):
+def make_format_reward(coef, use_unknown_ratio):
     def format_reward(completions, **kwargs):
         rewards = []
         
@@ -61,7 +64,7 @@ def make_format_reward(coef):
             lines = text.split('\n')
             f_lines = filter_lines(lines)
             
-            score = format_score(lines, f_lines)
+            score = format_score(lines, f_lines, use_unknown_ratio=use_unknown_ratio)
             rewards.append(coef * score)
         
         return rewards

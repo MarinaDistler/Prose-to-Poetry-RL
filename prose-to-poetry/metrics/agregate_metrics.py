@@ -9,6 +9,7 @@ from .rhyme_metric import check_rhyme_scheme, make_rhyme_reward
 from .meter_metric import check_meter_fast, make_meter_reward
 from .format_metric import format_score, make_format_reward
 from .semantic_metric import embedding_sim_score, make_semantic_reward
+from .language_score import make_language_reward
 
 from util import filter_lines
 
@@ -93,32 +94,11 @@ def compute_gate(sem_scores: torch.Tensor, format_scores: torch.Tensor,
 
     return gates
 
-def build_reward_functions_all(args):
-    reward_funcs = []
-    reward_weights = []
-
-    if args.rhyme_coef > 0:
-        reward_funcs.append(make_rhyme_reward(1., args.rhyme_alpha))
-        reward_weights.append(args.rhyme_coef)
-
-    if args.meter_coef > 0:
-        reward_funcs.append(make_meter_reward(1.))
-        reward_weights.append(args.meter_coef)
-
-    if args.format_coef > 0:
-        reward_funcs.append(make_format_reward(1.))
-        reward_weights.append(args.format_coef)
-
-    if args.sem_coef > 0:
-        reward_funcs.append(make_semantic_reward(1.))
-        reward_weights.append(args.sem_coef)
-
-    return reward_funcs, reward_weights
-
 def build_reward_functions(args):
     # --- base reward functions ---
     rhyme_fn = None
     meter_fn = None
+    lang_fn = None
 
     if args.rhyme_coef > 0:
         rhyme_fn = make_rhyme_reward(1., args.rhyme_alpha)
@@ -126,7 +106,10 @@ def build_reward_functions(args):
     if args.meter_coef > 0:
         meter_fn = make_meter_reward(1.)
 
-    format_fn = make_format_reward(1.)
+    if args.lang_coef > 0:
+        lang_fn = make_language_reward(1., path_base=args.from_pretrain)
+
+    format_fn = make_format_reward(1., use_unknown_ratio=args.unknown_ratio)
     sem_fn = make_semantic_reward(1.)
 
     def reward(log_metric=None, **kwargs):
@@ -134,6 +117,7 @@ def build_reward_functions(args):
 
         rhyme_scores = rhyme_fn(**kwargs) if rhyme_fn else None
         meter_scores = meter_fn(**kwargs) if meter_fn else None
+        lang_scores = lang_fn(**kwargs) if lang_fn else None
 
         # --- 2. convert to torch ---
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -143,6 +127,7 @@ def build_reward_functions(args):
         
         rhyme_t = to_tensor(rhyme_scores) if rhyme_scores is not None else 0
         meter_t = to_tensor(meter_scores) if meter_scores is not None else 0
+        lang_t = to_tensor(lang_scores) if lang_scores is not None else 0
 
         if args.sum_reward:
             format_scores = format_fn(**kwargs) if args.format_coef > 0 else None
@@ -155,7 +140,8 @@ def build_reward_functions(args):
                 args.rhyme_coef * rhyme_t +
                 args.meter_coef * meter_t +
                 args.format_coef * format_t +
-                args.sem_coef * sem_t
+                args.sem_coef * sem_t +
+                args.lang_coef * lang_t
             )
 
             gate = None
@@ -178,10 +164,13 @@ def build_reward_functions(args):
             # --- 4. form reward ---
             form = args.rhyme_coef * rhyme_t + args.meter_coef * meter_t
 
-            reward = (1 - args.sem_coef - args.format_coef) * gate * form  + args.sem_coef * sem_t + args.format_coef * format_t
+            reward = ((1 - args.sem_coef - args.format_coef - args.lang_coef) * gate * form  + 
+                      args.sem_coef * sem_t + 
+                      args.format_coef * format_t +
+                      args.lang_coef * lang_t)
         if log_metric:
             def log_stats(name, tensor):
-                if tensor is None:
+                if tensor is None or not torch.is_tensor(tensor):
                     return
                 log_metric(f"{name}_mean", tensor.mean().item())
                 log_metric(f"{name}_std", tensor.std().item())
@@ -190,6 +179,7 @@ def build_reward_functions(args):
             log_stats("meter", meter_t)
             log_stats("format", format_t)
             log_stats("semantic", sem_t)
+            log_stats("language", lang_t)
             if not args.sum_reward:
                 log_stats("gate", gate)
                 log_stats("form", form)

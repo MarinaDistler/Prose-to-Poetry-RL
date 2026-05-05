@@ -22,11 +22,9 @@ def main(args):
     seed_everything()
 
     if args.model == 't-lite':
-        model = ModelTLite(quantization=True, path=args.from_pretrain, 
-                           markup=args.markup, train_mode=args.train_mode)
+        model = ModelTLite(quantization=True, path=args.from_pretrain)
     elif args.model == 'qwen':
-        model = ModelQwen(quantization=True, path=args.from_pretrain, 
-                          markup=args.markup, train_mode=args.train_mode)
+        model = ModelQwen(quantization=True, path=args.from_pretrain)
     model.model.train()
 
     # LoRA config / адаптер 
@@ -112,7 +110,7 @@ if __name__ == "__main__":
     parser.add_argument('--test_dataset', type=str, default='dataset/testset.csv', help='Path to test dataset')
     parser.add_argument('--output_dir', type=str, default='output/', help='Directory to save model checkpoints')
     parser.add_argument('--checkpoint', type=str, default='', help='Path to existing model checkpoint to resume training')
-    parser.add_argument('--model', type=str, default='t-lite', choices=['t-lite', 'qwen'], help='Model type: "t-lite" or "qwen"')
+    parser.add_argument('--model', type=str, default='qwen', choices=['t-lite', 'qwen'], help='Model type: "t-lite" or "qwen"')
     parser.add_argument('--epochs', type=int, default=10, help='Number of training epochs')
     parser.add_argument('--lr', type=float, default=2e-5, help='Learning rate')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
@@ -130,7 +128,9 @@ if __name__ == "__main__":
     parser.add_argument('--rhyme_alpha', type=float, default=0.1, help='Rhyme alpha coef that defises how much negative score affects rhyme reward')
     parser.add_argument('--meter_coef', type=float, default=0.2, help='Meter score coefficient in rl metric')
     parser.add_argument('--format_coef', type=float, default=0.1, help='Len score coefficient in rl metric')
+    parser.add_argument('--unknown_ratio', action='store_true', help='Enable using unknown ratio in format score')
     parser.add_argument('--sem_coef', type=float, default=0.4, help='Semantic score coefficient in rl metric')
+    parser.add_argument('--lang_coef', type=float, default=0., help='Language score (NLL) coefficient in rl metric')
     parser.add_argument('--kl_beta', type=float, default=0., help='KL divergence coefficient in rl training')
     parser.add_argument('--sum_reward', action='store_true', help='Use sum instead of gating in rl reward')
     parser.add_argument('--num_generations', type=int, default=4, help='Number of generations in GRPO')
