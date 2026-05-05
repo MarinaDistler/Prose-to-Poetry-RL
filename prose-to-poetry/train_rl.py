@@ -78,7 +78,8 @@ def train_grpo(model, tokenizer, datasets, peft_config, args):
         per_device_eval_batch_size=fact_batch_size,
         num_generations_eval=1,
 
-        beta=args.kl_beta
+        beta=args.kl_beta,
+        eval_on_start=True
     )
 
     # --- trainer ---

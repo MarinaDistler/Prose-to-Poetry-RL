@@ -6,7 +6,13 @@ from rhymetagger import RhymeTagger
 
 from util import filter_lines
 
-nltk.download('punkt_tab')
+try:
+    nltk.data.find("tokenizers/punkt_tab")
+    print("punkt_tab already installed")
+except LookupError:
+    print("install punkt_tab")
+    nltk.download('punkt_tab')
+
 scheme_map_dict = {
     "ABAB": [(0, 2), (1, 3)],
     "AABB": [(0, 1), (2, 3)],
