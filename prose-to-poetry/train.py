@@ -78,11 +78,13 @@ def main(args):
     elif args.train_mode == 'grpo':
         dataset['train']['input_emb'] = encode_sent(dataset['train']['input'].tolist()).tolist()
         dataset['test']['input_emb'] = encode_sent(dataset['test']['input'].tolist()).tolist()
+        dataset['train']['input_len'] = [len(x) for x in dataset['train']['input']]
+        dataset['test']['input_len'] = [len(x) for x in dataset['test']['input']]
         dataset = {
             'train': Dataset.from_pandas(dataset['train'].rename(columns={'text': 'prompt'})
-                                    .reset_index(drop=True)[['prompt', 'input_emb', 'rhyme_scheme', 'meter']]),
+                                    .reset_index(drop=True)[['prompt', 'input_emb', 'input_len', 'rhyme_scheme', 'meter']]),
             'test': Dataset.from_pandas(dataset['test'].rename(columns={'text': 'prompt'})
-                                    .reset_index(drop=True)[['prompt', 'input_emb', 'rhyme_scheme', 'meter']]),
+                                    .reset_index(drop=True)[['prompt', 'input_emb', 'input_len', 'rhyme_scheme', 'meter']]),
         }
 
     if args.train_mode == "sft":
