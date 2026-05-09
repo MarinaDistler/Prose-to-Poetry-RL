@@ -9,6 +9,7 @@ def compute_nll_batch(
     completions: List[str],
     model, tokenizer,
     batch_size: int = 8,
+    center=3., alpha=1.0
 ):
     """
     Считает reward по NLL только на completion токенах,
@@ -93,7 +94,7 @@ def compute_nll_batch(
             avg_nll = loss.sum(dim=1) / denom
 
             # нормализация в 0..1
-            norm_score = 1 / (1 + torch.exp(2.0 * (avg_nll - 3.5)))
+            norm_score = 1 / (1 + torch.exp(alpha * (avg_nll - center)))
 
             normalized_scores.append(
                 norm_score.detach().cpu()
