@@ -136,12 +136,19 @@ def build_reward_functions(args):
         format_t = to_tensor(format_scores) if format_scores is not None else 0.0
         sem_t = to_tensor(sem_scores) if sem_scores is not None else 0.0
 
+        sem_coef = args.sem_coef
+        if args.sem_scheduler:
+            progress = kwargs['trainer_state'].global_step / kwargs['trainer_state'].max_steps
+            warmup_ratio = 0.7
+            sem_scale = min(progress / warmup_ratio, 1.0)
+            sem_coef = sem_coef * sem_scale
+
         if args.sum_reward:
             reward = (
                 args.rhyme_coef * rhyme_t +
                 args.meter_coef * meter_t +
                 args.format_coef * format_t +
-                args.sem_coef * sem_t +
+                sem_coef * sem_t +
                 args.lang_coef * lang_t
             )
 
@@ -162,7 +169,7 @@ def build_reward_functions(args):
             form = args.rhyme_coef * rhyme_t + args.meter_coef * meter_t
 
             reward = ((1 - args.sem_coef - args.format_coef - args.lang_coef) * gate * form  + 
-                      args.sem_coef * sem_t + 
+                      sem_coef * sem_t + 
                       args.format_coef * format_t +
                       args.lang_coef * lang_t)
         if log_metric:
@@ -183,6 +190,7 @@ def build_reward_functions(args):
                 log_stats("gated_reward", reward)
             else:
                 log_stats("sum_reward", reward)
+            log_metric(f"sem_coef", sem_coef)
 
             
         return reward.detach().cpu().tolist()

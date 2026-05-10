@@ -137,6 +137,7 @@ if __name__ == "__main__":
     parser.add_argument('--sum_reward', action='store_true', help='Use sum instead of gating in rl reward')
     parser.add_argument('--num_generations', type=int, default=4, help='Number of generations in GRPO')
     parser.add_argument('--long_prompt', action='store_true', help='Enable old long prompt')
+    parser.add_argument('--sem_scheduler', action='store_true', help='Enable using scheduler to semantic reward')
     
     parser.add_argument('--k_sem', type=float, default=30, help='Semantic score coefficient in gate in rl metric')
     parser.add_argument('--k_format', type=float, default=25, help='Format score coefficient in gate in rl metric')
