@@ -8,7 +8,7 @@ from generative_poetry.metre_classifier import ErrorsTable, MetreClassifier, \
                 PatternAnalyzer, StressPredictorAdapter, Markup
 
 from .rhyme_metric import scheme_map_dict
-from util import filter_lines
+from util import text_to_lines
 
 
 proj_dir = os.path.join('external_code', 'verslibre')
@@ -144,7 +144,7 @@ def check_meter_fast(lines, meter_name, rhyme_scheme):
 
     if count_sylables == 0:
         return 0.
-    return 0.8 * (1 - error_score / float(count_sylables)) + 0.2 * line_len_score
+    return 0.9 * (1 - error_score / float(count_sylables)) + 0.1 * line_len_score
 
 def get_meter(lines):
     markup = Markup.process_text(lines, stress_predictor)  
@@ -156,8 +156,7 @@ def make_meter_reward(coef):
         rewards = []
         
         for text, meter, scheme in zip(completions, meter, rhyme_scheme):
-            lines = text.split('\n')
-            f_lines = filter_lines(lines)
+            f_lines = text_to_lines(text)
             
             score = check_meter_fast(f_lines, meter, scheme)
             rewards.append(coef * score)

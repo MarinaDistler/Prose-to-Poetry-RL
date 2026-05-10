@@ -11,7 +11,7 @@ from .format_metric import format_score, make_format_reward
 from .semantic_metric import embedding_sim_score, make_semantic_reward
 from .language_metric import make_language_reward
 
-from util import filter_lines
+from util import text_to_lines
 
 
 def compute_metrics(texts, rhyme_schemes, meters):
@@ -79,9 +79,9 @@ def make_metric_fn():
     return ComputeAggMetrics()
 
 
-def compute_gate(sem_scores: torch.Tensor, format_scores: torch.Tensor,
-    k_sem: float = 8.0, k_format: float = 5.0,
-    sem_thr: float = 0.7, format_thr: float = 0.9,):
+def compute_gate(sem_scores: torch.Tensor, format_scores: torch.Tensor, lang_scores: torch.Tensor,
+    k_sem: float = 30.0, k_format: float = 25.0, k_lang: float = 25.0,
+    sem_thr: float = 0.6, format_thr: float = 0.8, lang_thr: float = 0.55,):
     """
     sem_scores: (batch,)
     format_scores: (batch,)
@@ -89,8 +89,9 @@ def compute_gate(sem_scores: torch.Tensor, format_scores: torch.Tensor,
     """
     gate_sem = torch.sigmoid(k_sem * (sem_scores - sem_thr))
     gate_fmt = torch.sigmoid(k_format * (format_scores - format_thr))
+    gate_lng = torch.sigmoid(k_lang * (lang_scores - lang_thr))
 
-    gates = gate_sem * gate_fmt
+    gates = gate_sem * gate_fmt * gate_lng
 
     return gates
 
@@ -98,7 +99,6 @@ def build_reward_functions(args):
     # --- base reward functions ---
     rhyme_fn = None
     meter_fn = None
-    lang_fn = None
 
     if args.rhyme_coef > 0:
         rhyme_fn = make_rhyme_reward(1., args.rhyme_alpha)
@@ -106,11 +106,14 @@ def build_reward_functions(args):
     if args.meter_coef > 0:
         meter_fn = make_meter_reward(1.)
 
-    if args.lang_coef > 0:
+    if args.lang_coef > 0 or not args.sum_reward:
         lang_fn = make_language_reward(1., path_base=args.from_pretrain)
 
-    format_fn = make_format_reward(1., use_unknown_ratio=args.unknown_ratio)
-    sem_fn = make_semantic_reward(1.)
+    if args.format_coef > 0 or not args.sum_reward:
+        format_fn = make_format_reward(1., use_unknown_ratio=args.unknown_ratio)
+
+    if args.sem_coef > 0 or not args.sum_reward:
+        sem_fn = make_semantic_reward(1.)
 
     def reward(log_metric=None, **kwargs):
         # --- 1. compute all base scores ---
@@ -118,6 +121,8 @@ def build_reward_functions(args):
         rhyme_scores = rhyme_fn(**kwargs) if rhyme_fn else None
         meter_scores = meter_fn(**kwargs) if meter_fn else None
         lang_scores = lang_fn(**kwargs) if lang_fn else None
+        format_scores = format_fn(**kwargs) if format_fn else None
+        sem_scores = sem_fn(**kwargs) if sem_fn else None
 
         # --- 2. convert to torch ---
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -128,14 +133,10 @@ def build_reward_functions(args):
         rhyme_t = to_tensor(rhyme_scores) if rhyme_scores is not None else 0
         meter_t = to_tensor(meter_scores) if meter_scores is not None else 0
         lang_t = to_tensor(lang_scores) if lang_scores is not None else 0
+        format_t = to_tensor(format_scores) if format_scores is not None else 0.0
+        sem_t = to_tensor(sem_scores) if sem_scores is not None else 0.0
 
         if args.sum_reward:
-            format_scores = format_fn(**kwargs) if args.format_coef > 0 else None
-            sem_scores = sem_fn(**kwargs) if args.sem_coef > 0 else None
-
-            format_t = to_tensor(format_scores) if format_scores is not None else 0.0
-            sem_t = to_tensor(sem_scores) if sem_scores is not None else 0.0
-
             reward = (
                 args.rhyme_coef * rhyme_t +
                 args.meter_coef * meter_t +
@@ -148,18 +149,14 @@ def build_reward_functions(args):
             form = None
 
         else:
-            format_scores = format_fn(**kwargs) 
-            sem_scores = sem_fn(**kwargs) 
-
-            format_t   = to_tensor(format_scores)  
-            sem_t   = to_tensor(sem_scores)  
-
             # --- 3. gate ---
-            gate = compute_gate(sem_t, format_t,
+            gate = compute_gate(sem_t, format_t, lang_t,
                                 k_sem=args.k_sem,
                                 k_format=args.k_format,
+                                k_lang=args.k_lang,
                                 sem_thr=args.sem_thr,
-                                format_thr=args.format_thr)
+                                format_thr=args.format_thr,
+                                lang_thr=args.lang_thr)
 
             # --- 4. form reward ---
             form = args.rhyme_coef * rhyme_t + args.meter_coef * meter_t

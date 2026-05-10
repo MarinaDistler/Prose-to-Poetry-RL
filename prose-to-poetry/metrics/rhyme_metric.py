@@ -4,7 +4,7 @@ from subprocess import check_output, DEVNULL
 
 from rhymetagger import RhymeTagger
 
-from util import filter_lines
+from util import text_to_lines
 
 try:
     nltk.data.find("tokenizers/punkt_tab")
@@ -189,8 +189,7 @@ def make_rhyme_reward(coef, alpha=0.1):
         rewards = []
         
         for text, scheme in zip(completions, rhyme_scheme):
-            lines = text.split('\n')
-            f_lines = filter_lines(lines)
+            f_lines = text_to_lines(text)
             
             score = get_rhyme_score(f_lines, scheme, alpha=alpha)
             rewards.append(coef * score)

@@ -2,7 +2,7 @@ import numpy as np
 import re
 from pymorphy2 import MorphAnalyzer
 
-from util import filter_lines
+from util import text_to_lines
 
 morph = MorphAnalyzer()
 
@@ -23,29 +23,24 @@ def unknown_word_ratio(text):
 
     return unknown / len(words)
 
-def length_reward_smooth(len_in, len_out, min_ratio=0.9, max_ratio=1.5, sigma_l=0.1, sigma_r=0.3):
+def length_reward_smooth(len_in, len_out, max_ratio=1.5, sigma_r=0.3):
     if len_out == 0: return 0
     
-    ratio = len_in / len_out
+    if len_in >= len_out:
+        ratio = len_in / len_out
+    else:
+        ratio = len_out / len_in
     
     # Если внутри границ - идеальная награда 1.0
-    if min_ratio <= ratio <= max_ratio:
+    if ratio <= max_ratio:
         return 1.0
     
-    if ratio < min_ratio:
-        # Если вышли за границы - считаем расстояние до ближайшего края
-        dist = abs(ratio - min_ratio)
-        
-        # Экспоненциальный штраф: чем дальше, тем ближе к 0
-        # sigma управляет "крутизной" падения. 0.2 - довольно плавно.
-        return np.exp(-(dist**2) / (2 * sigma_l**2))
-    else:
-        # Если вышли за границы - считаем расстояние до ближайшего края
-        dist = abs(ratio - max_ratio)
-        
-        # Экспоненциальный штраф: чем дальше, тем ближе к 0
-        # sigma управляет "крутизной" падения. 0.2 - довольно плавно.
-        return np.exp(-(dist**2) / (2 * sigma_r**2))
+    # Если вышли за границы - считаем расстояние до ближайшего края
+    dist = abs(ratio - max_ratio)
+    
+    # Экспоненциальный штраф: чем дальше, тем ближе к 0
+    # sigma управляет "крутизной" падения. 0.2 - довольно плавно.
+    return np.exp(-(dist**2) / (2 * sigma_r**2))
 
 def non_russian_penalty(text):
     # всё, что НЕ разрешено
@@ -100,7 +95,7 @@ def make_format_reward(coef, use_unknown_ratio):
         
         for text, input_len_ in zip(completions, input_len):
             lines = text.split('\n')
-            f_lines = filter_lines(lines)
+            f_lines = text_to_lines(text)
             
             score = format_score(text, lines, f_lines, input_len_, use_unknown_ratio=use_unknown_ratio)
             rewards.append(coef * score)

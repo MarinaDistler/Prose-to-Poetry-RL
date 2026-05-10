@@ -9,7 +9,7 @@ import numpy as np
 bertscore = load("bertscore")
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from util import print_options, filter_lines
+from util import print_options, text_to_lines
 from metrics import check_rhyme_scheme, check_meter_fast, encode_sent, embedding_sim_score, format_score
     
 
@@ -25,7 +25,7 @@ def eval_poetry(inputs, outputs):
         format_scores = []
         for i, output in tqdm(enumerate(outputs_)):
             lines = output.split('\n')
-            f_lines = filter_lines(lines)
+            f_lines = text_to_lines(output)
             rhyme_scores.append(check_rhyme_scheme(f_lines, inputs.iloc[i]['rhyme_scheme']))
             meter_scores.append(check_meter_fast(f_lines, inputs.iloc[i]['meter'], inputs.iloc[i]['rhyme_scheme']))
             format_scores.append(format_score(lines, f_lines))

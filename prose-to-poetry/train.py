@@ -140,8 +140,10 @@ if __name__ == "__main__":
     
     parser.add_argument('--k_sem', type=float, default=30, help='Semantic score coefficient in gate in rl metric')
     parser.add_argument('--k_format', type=float, default=25, help='Format score coefficient in gate in rl metric')
+    parser.add_argument('--k_lang', type=float, default=25, help='Language score coefficient in gate in rl metric')
     parser.add_argument('--sem_thr', type=float, default=0.6, help='Semantic threshold in gate in rl metric')
     parser.add_argument('--format_thr', type=float, default=0.8, help='Format threshold in gate in rl metric')
+    parser.add_argument('--lang_thr', type=float, default=0.55, help='Language threshold in gate in rl metric')
 
     args, unknown1 = parser.parse_known_args()
 

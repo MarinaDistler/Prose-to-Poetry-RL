@@ -22,13 +22,8 @@ def clean_responses(responses):
         responses[i] = re.sub(r'<(?:[sS]\d+|count\d+)>', '', responses[i])
     return responses
 
-def filter_lines(lines):
-    lines = [line.strip() for line in lines if any(ch.isalpha() for ch in line)]
-    if len(lines) > 0 and lines[0] == 'assistant':
-        lines = lines[1:]
-    return lines
-
 def text_to_lines(text):
+    text = re.sub(r"[^а-яёА-ЯЁ\s.,!?—:;()\-\«\»\"]", "", text)
     return [line.strip() for line in text.split('\n') if any(ch.isalpha() for ch in line)]
 
 def print_options(opt, parser):
