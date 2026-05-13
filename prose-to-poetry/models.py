@@ -49,7 +49,7 @@ class BaseModel:
     def save_for_inference(self, path):
         base_model = self.model
 
-        base_model = base_model.merge_and_unload().to(torch.bfloat16)
+        base_model = base_model.merge_and_unload()
         base_model.save_pretrained(os.path.join(path, 'merged'), safe_serialization=True)
 
     def load_for_inference(self, path):

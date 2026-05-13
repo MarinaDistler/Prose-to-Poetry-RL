@@ -91,7 +91,7 @@ def compute_gate(sem_scores: torch.Tensor, format_scores: torch.Tensor, lang_sco
     gate_fmt = torch.sigmoid(k_format * (format_scores - format_thr))
     gate_lng = torch.sigmoid(k_lang * (lang_scores - lang_thr))
 
-    gates = gate_sem * gate_fmt * gate_lng
+    gates = (gate_sem * gate_fmt * gate_lng) ** (1/3)
 
     return gates
 
@@ -137,11 +137,15 @@ def build_reward_functions(args):
         sem_t = to_tensor(sem_scores) if sem_scores is not None else 0.0
 
         sem_coef = args.sem_coef
-        if args.sem_scheduler:
+        lang_coef = args.lang_coef
+        if args.coef_scheduler:
             progress = kwargs['trainer_state'].global_step / kwargs['trainer_state'].max_steps
-            warmup_ratio = 0.7
-            sem_scale = min(progress / warmup_ratio, 1.0)
-            sem_coef = sem_coef * sem_scale
+            warmup_ratio = 0.5
+            scale = min(progress / warmup_ratio, 1.0)
+            if args.sum_reward:
+                scale = 0.1 + 0.95 * scale
+            sem_coef = sem_coef * scale
+            lang_coef = lang_coef * scale
 
         if args.sum_reward:
             reward = (
@@ -149,7 +153,7 @@ def build_reward_functions(args):
                 args.meter_coef * meter_t +
                 args.format_coef * format_t +
                 sem_coef * sem_t +
-                args.lang_coef * lang_t
+                lang_coef * lang_t
             )
 
             gate = None
@@ -171,7 +175,7 @@ def build_reward_functions(args):
             reward = ((1 - args.sem_coef - args.format_coef - args.lang_coef) * gate * form  + 
                       sem_coef * sem_t + 
                       args.format_coef * format_t +
-                      args.lang_coef * lang_t)
+                      lang_coef * lang_t)
         if log_metric:
             def log_stats(name, tensor):
                 if tensor is None or not torch.is_tensor(tensor):

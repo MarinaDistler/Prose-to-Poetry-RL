@@ -138,8 +138,8 @@ if __name__ == "__main__":
     parser.add_argument('--kl_beta', type=float, default=0., help='KL divergence coefficient in rl training')
     parser.add_argument('--sum_reward', action='store_true', help='Use sum instead of gating in rl reward')
     parser.add_argument('--num_generations', type=int, default=4, help='Number of generations in GRPO')
-    parser.add_argument('--prompt_type', type=str, default='short', choices=['short', 'mid', 'long'], help='Choose prompt type')
-    parser.add_argument('--sem_scheduler', action='store_true', help='Enable using scheduler to semantic reward')
+    parser.add_argument('--prompt_type', type=str, default='long', choices=['short', 'mid', 'long'], help='Choose prompt type')
+    parser.add_argument('--coef_scheduler', action='store_true', help='Enable using scheduler to semantic and language reward')
     
     parser.add_argument('--k_sem', type=float, default=30, help='Semantic score coefficient in gate in rl metric')
     parser.add_argument('--k_format', type=float, default=25, help='Format score coefficient in gate in rl metric')
