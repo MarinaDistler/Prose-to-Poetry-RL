@@ -10,6 +10,21 @@ system_instruction = '''Вы – талантливый поэт, создающ
                     '''5. Выразительность: сделайте текст поэтичным и насыщенным.\n''' \
                     '''6. Формат: в ответе должно быть исключительно само стихотворение без комментариев.\n'''
 
+system_instruction_mid = '''Ты - русский поэт. При преобразовании текста в стих:
+1. Соблюдай заданную схему рифм.
+2. Пиши в заданном метре.
+3. Без пояснений, только стих на русском в 4 строки.
+4. Следуй правилам русского языка.
+5. Сохраняй смысл заданного текста.
+'''
+
+system_instruction_generate_mid = '''Ты - русский поэт. При написании стихов:
+1. Соблюдай заданную схему рифм.
+2. Пиши в заданном метре.
+3. Без пояснений, только стих на русском в 4 строки.
+4. Следуй правилам русского языка.
+'''
+
 system_instruction_short = '''Перефразируй текст в стих.
 Соблюдай рифму и метр.
 Без пояснений, только стих на русском в 4 строки.
@@ -29,6 +44,18 @@ system_instruction_generate = '''Вы – талантливый поэт, со�
                     '''3. Объём: стихотворение должно содержать ровно 4 строки.\n''' \
                     '''5. Выразительность: сделайте текст поэтичным и насыщенным.\n''' \
                     '''6. Формат: в ответе должно быть исключительно само стихотворение без комментариев.\n'''
+
+system_instruction_dict = {
+    'short': system_instruction_short,
+    'mid': system_instruction_mid,
+    'long': system_instruction
+}
+
+system_instruction_generate_dict = {
+    'short': system_instruction_generate_short,
+    'mid': system_instruction_generate_mid,
+    'long': system_instruction_generate
+}
 
 system_instruction_inv = '''Вы – профессиональный литературный редактор, специалист по адаптации русской поэзии в художественную прозу. Преобразуйте данное стихотворение в прозаический текст, соблюдая следующие правила:\n''' \
         '''1. Сохранение смысла: передайте основное содержание, образы, идеи и настроение стихотворения.\n''' \
@@ -66,11 +93,15 @@ def get_prompt(text, scheme='ABAB', meter='ямб'):
         return f'''Напиши четверостишие с параметрами:\n Рифмовка: {scheme}\n Размер: {meters[meter]}\n'''
     return f'''Преобразуй прозу в четверостишие с параметрами:\n Рифмовка: {scheme}\n Размер: {meters[meter]}\n Исходный текст: {text}'''
 
-def get_train_prompt(text, scheme='ABAB', meter='ямб', short=False):
-    if short:
+def get_train_prompt(text, scheme='ABAB', meter='ямб', prompt_type='short'):
+    if prompt_type == 'short':
         if text is None:
             return f'''Рифма: {scheme}\n Метр: {short_meters[meter]}\n'''
         return f'''Рифма: {scheme}\n Метр: {short_meters[meter]}\n Текст: {text}'''
+    if prompt_type == 'mid':
+        if text is None:
+            return f'''Напиши четверостишие с параметрами:\n Схема рифм: {scheme}\n Метр: {short_meters[meter]}\n'''
+        return f'''Преобразуй прозу в четверостишие с параметрами:\n  Схема рифм: {scheme}\n Метр: {short_meters[meter]}\n Текст: {text}'''
     if text is None:
         return f'''Напиши четверостишие с параметрами:\n Рифмовка: {scheme}\n Размер: {short_meters[meter]}\n'''
     return f'''Преобразуй прозу в четверостишие с параметрами:\n Рифмовка: {scheme}\n Размер: {short_meters[meter]}\n Исходный текст: {text}'''
@@ -104,17 +135,17 @@ def generate_model_answers(model_func, file_path='test_text.txt', from_id=0, to_
     return pd.concat(answers)
 
 
-def format_chat_template(row, tokenizer, generate=False, markup='stanzas', short=True):
+def format_chat_template(row, tokenizer, generate=False, markup='stanzas', prompt_type='short'):
     if generate:
-        prompt = get_train_prompt(None, row['rhyme_scheme'], row['meter'], short=short)
+        prompt = get_train_prompt(None, row['rhyme_scheme'], row['meter'], prompt_type=prompt_type)
         row_json = [
-            {"role": "system", "content": system_instruction_generate if not short else system_instruction_generate_short},
+            {"role": "system", "content": system_instruction_generate_dict[prompt_type]},
             {"role": "user", "content": prompt},
         ]
     else:
-        prompt = get_train_prompt(row['input'], row['rhyme_scheme'], row['meter'], short=short)
+        prompt = get_train_prompt(row['input'], row['rhyme_scheme'], row['meter'], prompt_type=prompt_type)
         row_json = [
-            {"role": "system", "content": system_instruction if not short else system_instruction_short},
+            {"role": "system", "content": system_instruction_dict[prompt_type]},
             {"role": "user", "content": prompt},
         ]
     if markup is not None:

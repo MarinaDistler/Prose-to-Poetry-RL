@@ -63,7 +63,7 @@ def main(args):
     markup = args.markup if args.train_mode == 'sft' else None
 
     format_chat_template_ = lambda row: format_chat_template(row, model.tokenizer, args.pretrain, markup=markup, 
-                                                             short=not args.long_prompt)
+                                                             prompt_type=args.prompt_type)
     dataset['train'] = dataset['train'].apply(
         format_chat_template_, axis=1
     )
@@ -124,6 +124,8 @@ if __name__ == "__main__":
     parser.add_argument('--from_pretrain', type=str, default='', help='Path to pretrained model checkpoint')
     parser.add_argument('--markup', type=str, default='stanzas', choices=['rhyme_markup', 'stress_markup', 'stanzas', 'rhyme_stress_markup'], help='The used markup')
 
+    parser.add_argument('--old_loss', action='store_true', help='Enable old loss using prompt and answer')
+
     parser.add_argument('--train_mode', type=str, default='sft', choices=['sft', 'grpo'], help='The used training mode')
 
     parser.add_argument('--rhyme_coef', type=float, default=0.3, help='Rhyme score coefficient in rl metric')
@@ -136,15 +138,15 @@ if __name__ == "__main__":
     parser.add_argument('--kl_beta', type=float, default=0., help='KL divergence coefficient in rl training')
     parser.add_argument('--sum_reward', action='store_true', help='Use sum instead of gating in rl reward')
     parser.add_argument('--num_generations', type=int, default=4, help='Number of generations in GRPO')
-    parser.add_argument('--long_prompt', action='store_true', help='Enable old long prompt')
+    parser.add_argument('--prompt_type', type=str, default='short', choices=['short', 'mid', 'long'], help='Choose prompt type')
     parser.add_argument('--sem_scheduler', action='store_true', help='Enable using scheduler to semantic reward')
     
     parser.add_argument('--k_sem', type=float, default=30, help='Semantic score coefficient in gate in rl metric')
     parser.add_argument('--k_format', type=float, default=25, help='Format score coefficient in gate in rl metric')
-    parser.add_argument('--k_lang', type=float, default=25, help='Language score coefficient in gate in rl metric')
+    parser.add_argument('--k_lang', type=float, default=30, help='Language score coefficient in gate in rl metric')
     parser.add_argument('--sem_thr', type=float, default=0.6, help='Semantic threshold in gate in rl metric')
     parser.add_argument('--format_thr', type=float, default=0.8, help='Format threshold in gate in rl metric')
-    parser.add_argument('--lang_thr', type=float, default=0.55, help='Language threshold in gate in rl metric')
+    parser.add_argument('--lang_thr', type=float, default=0.45, help='Language threshold in gate in rl metric')
 
     args, unknown1 = parser.parse_known_args()
 

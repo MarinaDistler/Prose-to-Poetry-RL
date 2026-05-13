@@ -55,6 +55,11 @@ def train_grpo(model, tokenizer, datasets, peft_config, args):
 
         logging_steps=max(1, args.log_steps),
         save_steps=max(1, args.save_steps),
+
+        lr_scheduler_type='cosine_warmup_with_min_lr',
+        lr_scheduler_kwargs = {
+            'min_lr_rate': 0.3,
+        },
         warmup_steps=args.warmup_steps,
 
         bf16=True,
