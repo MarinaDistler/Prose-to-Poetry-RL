@@ -6,7 +6,7 @@ touch "$CHECKPOINT_FILE"
 experiments=(
     "python3 prose-to-poetry/train.py \
   --model='qwen' \
-  --from_pretrain=output/SFT/sft_short_prompt-05-04-18-33/checkpoint-626 \
+  --from_pretrain=output/SFT/sft_short_prompt_2ep-05-11-06-46/checkpoint-626 \
   --save_steps=90 \
   --train_dataset=dataset/prosa_train_text.csv \
   --test_dataset=dataset/prosa_val_text.csv \
@@ -15,12 +15,12 @@ experiments=(
   --eval_steps=180 \
   --warmup_steps=370 \
   --lr=5e-6 --rhyme_coef=0.5 --meter_coef=0.5 --format_coef=0.05 --sem_coef=0.05 --lang_coef=0.05 \
-  --train_mode=grpo --name_run=poetry_model"
+  --train_mode=grpo --name_run=poetry_model_semsched_new_model --sem_scheduler"
   "python3 prose-to-poetry/train.py --model='qwen' \
-  --from_pretrain=output/SFT/sft_short_prompt-05-04-18-33/checkpoint-626 \
+  --from_pretrain=models/qwen \
   --save_steps=90 --train_dataset=dataset/prosa_train_text.csv \
   --test_dataset=dataset/prosa_val_text.csv --epochs=1 \
-  --log_steps=10 --eval_steps=180 --warmup_steps=370 \
+  --log_steps=10 --eval_steps=180 --warmup_steps=100 \
   --lr=5e-6 --rhyme_coef=0.2 --meter_coef=0.2 --format_coef=0.2 --sem_coef=0.2\
   --train_mode=grpo --name_run=poetry_model_sum --lang_coef=0.2 --sum_reward"
 )
