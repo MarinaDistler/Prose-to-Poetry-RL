@@ -50,23 +50,23 @@ python3 prose-to-poetry/train.py \
   --model='qwen' \
   --save_steps=150 --eval_steps=150\
   --train_dataset=dataset/trainset_pretrain \
-  --epochs=1 \
+  --epochs=2 \
   --log_steps=10 \
   --markup=stanzas \
   --warmup_steps=320 \
-  --lr=2e-5 --name_run=sft_long_prompt_pretrain
+  --lr=2e-5 --name_run=sft_short_prompt_pretrain_2ep
 
 sft
    python3 prose-to-poetry/train.py \
   --model='qwen' \
-  --from_pretrain=output/SFT-pretrain/sft_short_prompt_pretrain-05-02-02-51-pretrain/checkpoint-5350 \
+  --from_pretrain=output/SFT-pretrain/sft_short_prompt_pretrain_2ep-05-11-01-43-pretrain/checkpoint-10700 \
   --save_steps=150 --eval_steps=150\
   --train_dataset=dataset/trainset.csv \
   --epochs=2 \
   --log_steps=10 \
   --markup=stanzas \
   --warmup_steps=30 \
-  --lr=5e-6  --name_run=sft_short_prompt 
+  --lr=5e-6  --name_run=sft_short_prompt_2ep 
 
   python3 prose-to-poetry/eval.py \
   --name=qwen \

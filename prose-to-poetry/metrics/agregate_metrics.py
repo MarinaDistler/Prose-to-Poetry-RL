@@ -1,6 +1,7 @@
 import os
 import sys
 import torch
+import numpy as np
 
 current_dir = os.path.dirname(__file__)  # Папка, где лежит текущий скрипт
 external_code_path = os.path.abspath(os.path.join(current_dir, '..', '..', 'external_code', 'verslibre', 'py'))
@@ -78,24 +79,28 @@ class ComputeAggMetrics:
 def make_metric_fn():
     return ComputeAggMetrics()
 
+def sigmoid_L_R(score, L, R, k, s0, s1):
+    z = (score - L) / (R - L)
+    z = torch.clamp(z, 0, 1)
+
+    sig = torch.sigmoid(k * (z - 0.5))
+
+    gate = 0.5 + 0.5 * (sig - s0) / (s1 - s0)
+    return gate
 
 def compute_gate(sem_scores: torch.Tensor, format_scores: torch.Tensor, lang_scores: torch.Tensor,
-    k_sem: float = 30.0, k_format: float = 25.0, k_lang: float = 25.0,
-    sem_thr: float = 0.6, format_thr: float = 0.8, lang_thr: float = 0.55,):
-    """
-    sem_scores: (batch,)
-    format_scores: (batch,)
-    returns: (batch,) gate in (0,1)
-    """
-    gate_sem = torch.sigmoid(k_sem * (sem_scores - sem_thr))
-    gate_fmt = torch.sigmoid(k_format * (format_scores - format_thr))
-    gate_lng = torch.sigmoid(k_lang * (lang_scores - lang_thr))
+    k: float, s0: float, s1: float,
+    L_sem: float, L_format: float, L_lang: float,
+    R_sem: float, R_format: float, R_lang: float,):
 
-    gates = (gate_sem * gate_fmt * gate_lng) ** (1/3)
+    gate_sem = sigmoid_L_R(sem_scores, L_sem, R_sem, k, s0, s1)
+    gate_fmt = sigmoid_L_R(format_scores, L_format, R_format, k, s0, s1)
+    gate_lng = sigmoid_L_R(lang_scores, L_lang, R_lang, k, s0, s1)
 
-    return gates
+    gs = torch.stack([gate_sem, gate_fmt,  gate_lng])
+    return 0.6 * gs.min(dim=0).values + 0.4 * gs.mean(dim=0)
 
-def build_reward_functions(args):
+def build_reward_functions(args, k=10.):
     # --- base reward functions ---
     rhyme_fn = None
     meter_fn = None
@@ -114,6 +119,9 @@ def build_reward_functions(args):
 
     if args.sem_coef > 0 or not args.sum_reward:
         sem_fn = make_semantic_reward(1.)
+
+    s0 = 1 / (1 + np.exp(0.5 * k))
+    s1 = 1 / (1 + np.exp(-0.5 * k))
 
     def reward(log_metric=None, **kwargs):
         # --- 1. compute all base scores ---
@@ -140,7 +148,10 @@ def build_reward_functions(args):
         lang_coef = args.lang_coef
         if args.coef_scheduler:
             progress = kwargs['trainer_state'].global_step / kwargs['trainer_state'].max_steps
-            warmup_ratio = 0.5
+            if args.sum_reward:
+                warmup_ratio = 0.5
+            else:
+                warmup_ratio = 0.7
             scale = min(progress / warmup_ratio, 1.0)
             if args.sum_reward:
                 scale = 0.1 + 0.95 * scale
@@ -162,17 +173,14 @@ def build_reward_functions(args):
         else:
             # --- 3. gate ---
             gate = compute_gate(sem_t, format_t, lang_t,
-                                k_sem=args.k_sem,
-                                k_format=args.k_format,
-                                k_lang=args.k_lang,
-                                sem_thr=args.sem_thr,
-                                format_thr=args.format_thr,
-                                lang_thr=args.lang_thr)
+                                k=k, s0=s0, s1=s1,
+                                L_sem=args.L_sem, L_format=args.L_format, L_lang=args.L_lang,
+                                R_sem=args.R_sem, R_format=args.R_format, R_lang=args.R_lang,)
 
             # --- 4. form reward ---
             form = args.rhyme_coef * rhyme_t + args.meter_coef * meter_t
 
-            reward = ((1 - args.sem_coef - args.format_coef - args.lang_coef) * gate * form  + 
+            reward = ((1 - sem_coef - args.format_coef - lang_coef) * gate * form  + 
                       sem_coef * sem_t + 
                       args.format_coef * format_t +
                       lang_coef * lang_t)

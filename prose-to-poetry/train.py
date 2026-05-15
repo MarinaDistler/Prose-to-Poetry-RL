@@ -141,12 +141,12 @@ if __name__ == "__main__":
     parser.add_argument('--prompt_type', type=str, default='long', choices=['short', 'mid', 'long'], help='Choose prompt type')
     parser.add_argument('--coef_scheduler', action='store_true', help='Enable using scheduler to semantic and language reward')
     
-    parser.add_argument('--k_sem', type=float, default=30, help='Semantic score coefficient in gate in rl metric')
-    parser.add_argument('--k_format', type=float, default=25, help='Format score coefficient in gate in rl metric')
-    parser.add_argument('--k_lang', type=float, default=30, help='Language score coefficient in gate in rl metric')
-    parser.add_argument('--sem_thr', type=float, default=0.6, help='Semantic threshold in gate in rl metric')
-    parser.add_argument('--format_thr', type=float, default=0.8, help='Format threshold in gate in rl metric')
-    parser.add_argument('--lang_thr', type=float, default=0.45, help='Language threshold in gate in rl metric')
+    parser.add_argument('--L_sem', type=float, default=0.45, help='Semantic left border in gate in rl metric')
+    parser.add_argument('--R_sem', type=float, default=0.8, help='Semantic right border in gate in rl metric')
+    parser.add_argument('--L_format', type=float, default=0.6, help='Format left border in gate in rl metric')
+    parser.add_argument('--R_format', type=float, default=1., help='Format right border in gate in rl metric')
+    parser.add_argument('--L_lang', type=float, default=0.34, help='Language  left border in gate in rl metric')
+    parser.add_argument('--R_lang', type=float, default=0.64, help='Language right border in gate in rl metric')
 
     args, unknown1 = parser.parse_known_args()
 
