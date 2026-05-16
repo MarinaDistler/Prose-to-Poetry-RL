@@ -4,7 +4,7 @@ from peft import PeftModel
 import os
 import re
 
-from prompts import get_train_prompt, get_prompt, system_instruction, system_instruction_generate
+from prompts import format_chat_template
 from util import clean_responses
 
 class BaseModel:
@@ -60,23 +60,17 @@ class BaseModel:
         )
         self.tokenizer = AutoTokenizer.from_pretrained(path)
 
-    def use(self, text, scheme='ABAB', meter='ямб', clean=True):
+    def use(self, text, scheme='ABAB', meter='ямб', clean=True, prompt_type='long'):
         self.model.eval()
-        system_instruction_ = system_instruction
-        text_ = text
-        if self.generate:
-            system_instruction_ = system_instruction_generate
-            text_ = None
-        messages = [
-            {"role": "system", "content": system_instruction_},
-            {"role": "user", "content": get_train_prompt(text_, scheme, meter)}
-        ]
-        text = self.tokenizer.apply_chat_template(
-            messages,
-            tokenize=False,
-            add_generation_prompt=True
-        )
-        model_inputs = self.tokenizer([text], return_tensors="pt").to(self.model.device)
+        row = {
+            'input': text,
+            'meter': meter,
+            'rhyme_scheme': scheme,
+        }
+        prompt = format_chat_template(row, self.tokenizer, generate=self.generate, markup=None, 
+                                                                prompt_type=prompt_type)['text']
+        
+        model_inputs = self.tokenizer([prompt], return_tensors="pt").to(self.model.device)
 
         with torch.inference_mode():
             generated_ids = self.model.generate(
@@ -87,7 +81,7 @@ class BaseModel:
             output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
         ]
 
-        response = self.tokenizer.batch_decode(generated_ids)[0]
+        response = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
         if clean:
             response = clean_responses([response])[0]
         return response
