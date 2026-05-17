@@ -92,6 +92,12 @@ class ModelQwen(BaseModel):
             'Qwen/Qwen2.5-3B-Instruct', path, 
             quantization, generate)
 
+class ModelQwen7B(BaseModel):
+    def __init__(self, quantization=False, path='', generate=False):
+        super().__init__(
+            'Qwen/Qwen2.5-7B-Instruct', path, 
+            quantization, generate)
+
 class ModelTLite(BaseModel):
     def __init__(self, quantization=False, path='', generate=False):
         super().__init__(

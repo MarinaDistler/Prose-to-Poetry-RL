@@ -63,7 +63,7 @@ def intra_repetition_reward(lines):
     # Если все 4 разные -> 1.0. Если 2 одинаковые -> 0.75. Если все 4 одинаковые -> 0.25.
     return num_unique / num_total
 
-def format_score(text, lines, filtered_lines, input_len, use_unknown_ratio=True):
+def format_score(text, lines, filtered_lines, input_len, use_unknown_ratio=False):
     # число строк (идеал = 4)
     line_score = np.exp(-abs(len(filtered_lines) - 4))   # плавно: 1 → 0.37 → 0.14
     

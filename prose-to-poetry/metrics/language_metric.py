@@ -4,7 +4,7 @@ from typing import List
 from models import ModelQwen
 
 
-def compute_nll_batch(
+def compute_lang_batch(
     prompts: List[str],
     completions: List[str],
     model, tokenizer,
@@ -111,7 +111,7 @@ def make_language_reward(coef, path_base):
     model.eval()
 
     def lang_reward(prompts, completions, **kwargs):
-        scores = compute_nll_batch(prompts, completions, model, tokenizer)
+        scores = compute_lang_batch(prompts, completions, model, tokenizer, mode='reward')
         return (coef * scores).tolist()
     
     return lang_reward
