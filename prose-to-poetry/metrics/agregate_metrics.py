@@ -154,7 +154,7 @@ def build_reward_functions(args, k=10.):
                 warmup_ratio = 0.7
             scale = min(progress / warmup_ratio, 1.0)
             if args.sum_reward:
-                scale = 0.1 + 0.95 * scale
+                scale = 0.1 + 0.9 * scale
             sem_coef = sem_coef * scale
             lang_coef = lang_coef * scale
 
