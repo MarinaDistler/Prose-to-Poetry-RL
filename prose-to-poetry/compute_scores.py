@@ -120,13 +120,6 @@ def grammar_error_rate(text, lang_tool):
     return total_errors / total_words
 
 def eval_poetry(inputs, outputs, args):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model_base = ModelQwen7B(quantization=False, path='', generate=False)
-    tokenizer = model_base.tokenizer
-    model = model_base.model
-    model.to(device)
-    model.eval()
-
     if args.grammar:
         lang_tool = language_tool_python.LanguageTool('ru-RU')
         result = pd.DataFrame(columns=['grammar'])
@@ -143,6 +136,12 @@ def eval_poetry(inputs, outputs, args):
             print(name, res)
         return result
     
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model_base = ModelQwen7B(quantization=False, path='', generate=False)
+    tokenizer = model_base.tokenizer
+    model = model_base.model
+    model.to(device)
+    model.eval()
 
     result = pd.DataFrame(columns=['BERTscore', 'semantic_score', 'rhyme_score', 'meter_score', 
                                 'format_score', 'perplexity', 'distinct_2'])
