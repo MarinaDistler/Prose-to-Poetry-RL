@@ -91,19 +91,25 @@ def sigmoid_L_R(score, L, R, k, s0, s1):
 def compute_gate(sem_scores: torch.Tensor, format_scores: torch.Tensor, lang_scores: torch.Tensor,
     k: float, s0: float, s1: float,
     L_sem: float, L_format: float, L_lang: float,
-    R_sem: float, R_format: float, R_lang: float,):
+    R_sem: float, R_format: float, R_lang: float,
+    no_lang: bool):
 
     gate_sem = sigmoid_L_R(sem_scores, L_sem, R_sem, k, s0, s1)
     gate_fmt = sigmoid_L_R(format_scores, L_format, R_format, k, s0, s1)
-    gate_lng = sigmoid_L_R(lang_scores, L_lang, R_lang, k, s0, s1)
-
-    gs = torch.stack([gate_sem, gate_fmt,  gate_lng])
+    if not no_lang:
+        gate_lng = sigmoid_L_R(lang_scores, L_lang, R_lang, k, s0, s1)
+        gs = torch.stack([gate_sem, gate_fmt,  gate_lng])
+    else:
+        gs = torch.stack([gate_sem, gate_fmt])
     return 0.6 * gs.min(dim=0).values + 0.4 * gs.mean(dim=0)
 
 def build_reward_functions(args, k=10.):
     # --- base reward functions ---
     rhyme_fn = None
     meter_fn = None
+    lang_fn = None
+    format_fn = None
+    sem_fn = None
 
     if args.rhyme_coef > 0:
         rhyme_fn = make_rhyme_reward(1., args.rhyme_alpha)
@@ -111,7 +117,7 @@ def build_reward_functions(args, k=10.):
     if args.meter_coef > 0:
         meter_fn = make_meter_reward(1.)
 
-    if args.lang_coef > 0 or not args.sum_reward:
+    if (args.lang_coef > 0 or not args.sum_reward) and not args.no_lang:
         lang_fn = make_language_reward(1., path_base=args.from_pretrain)
 
     if args.format_coef > 0 or not args.sum_reward:
@@ -157,6 +163,8 @@ def build_reward_functions(args, k=10.):
                 scale = 0.1 + 0.9 * scale
             sem_coef = sem_coef * scale
             lang_coef = lang_coef * scale
+        if args.no_lang:
+            lang_coef = 0.
 
         if args.sum_reward:
             reward = (
@@ -175,7 +183,8 @@ def build_reward_functions(args, k=10.):
             gate = compute_gate(sem_t, format_t, lang_t,
                                 k=k, s0=s0, s1=s1,
                                 L_sem=args.L_sem, L_format=args.L_format, L_lang=args.L_lang,
-                                R_sem=args.R_sem, R_format=args.R_format, R_lang=args.R_lang,)
+                                R_sem=args.R_sem, R_format=args.R_format, R_lang=args.R_lang,
+                                no_lang=args.no_lang)
 
             # --- 4. form reward ---
             form = args.rhyme_coef * rhyme_t + args.meter_coef * meter_t
