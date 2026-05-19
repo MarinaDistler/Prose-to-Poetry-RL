@@ -3,6 +3,7 @@ output
 output_old
 wandb
 .venv
+.venv2
 **/__pycache__/*
 models/*
 runs/

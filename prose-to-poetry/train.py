@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from models import ModelTLite, ModelQwen
+from models import ModelTLite, ModelQwen, ModelQwen7B
 from prompts import format_chat_template 
 from util import print_options, seed_everything
 from metrics import encode_sent
@@ -25,6 +25,8 @@ def main(args):
         model = ModelTLite(quantization=True, path=args.from_pretrain)
     elif args.model == 'qwen':
         model = ModelQwen(quantization=True, path=args.from_pretrain)
+    elif args.model == 'qwen7b':
+        model = ModelQwen7B(quantization=True, path=args.from_pretrain)
     model.model.train()
 
     # LoRA config / адаптер 
@@ -112,7 +114,7 @@ if __name__ == "__main__":
     parser.add_argument('--test_dataset', type=str, default='dataset/testset.csv', help='Path to test dataset')
     parser.add_argument('--output_dir', type=str, default='output/', help='Directory to save model checkpoints')
     parser.add_argument('--checkpoint', type=str, default='', help='Path to existing model checkpoint to resume training')
-    parser.add_argument('--model', type=str, default='qwen', choices=['t-lite', 'qwen'], help='Model type: "t-lite" or "qwen"')
+    parser.add_argument('--model', type=str, default='qwen', choices=['t-lite', 'qwen', 'qwen7b'], help='Model type: "t-lite" or "qwen" or "qwen7b"')
     parser.add_argument('--epochs', type=int, default=10, help='Number of training epochs')
     parser.add_argument('--lr', type=float, default=2e-5, help='Learning rate')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
@@ -140,6 +142,7 @@ if __name__ == "__main__":
     parser.add_argument('--num_generations', type=int, default=4, help='Number of generations in GRPO')
     parser.add_argument('--prompt_type', type=str, default='long', choices=['short', 'mid', 'long'], help='Choose prompt type')
     parser.add_argument('--coef_scheduler', action='store_true', help='Enable using scheduler to semantic and language reward')
+    parser.add_argument('--no_lang', action='store_true', help='Enable not using language reward')
     
     parser.add_argument('--L_sem', type=float, default=0.45, help='Semantic left border in gate in rl metric')
     parser.add_argument('--R_sem', type=float, default=0.8, help='Semantic right border in gate in rl metric')

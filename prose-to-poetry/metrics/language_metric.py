@@ -111,7 +111,7 @@ def make_language_reward(coef, path_base):
     model.eval()
 
     def lang_reward(prompts, completions, **kwargs):
-        scores = compute_lang_batch(prompts, completions, model, tokenizer, mode='reward')
+        scores = compute_lang_batch(prompts, completions, model, tokenizer)
         return (coef * scores).tolist()
     
     return lang_reward
