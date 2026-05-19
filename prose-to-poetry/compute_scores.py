@@ -163,11 +163,15 @@ def eval_poetry(inputs, outputs, args):
             format_scores.append(format_score(output, lines, f_lines, len(inputs.iloc[i]['input']), use_unknown_ratio=False))
             distinct_2.append(distinct_n(output, n=2))
             
+        valid = np.sum(~np.isnan(meter_scores))
+        total = len(meter_scores)
+        print(f"Valid meter for {name}: {valid / total * 100}%")
+
         res = {
             'BERTscore': np.mean(bertscore_["f1"]),
             'semantic_score': np.mean(sem_scores),
             'rhyme_score': np.mean(rhyme_scores),
-            'meter_score': np.mean(meter_scores),
+            'meter_score': np.nanmean(meter_scores),
             'format_score': np.mean(format_scores),
             'perplexity': np.mean(perpl),
             'distinct_2': np.mean(distinct_2),

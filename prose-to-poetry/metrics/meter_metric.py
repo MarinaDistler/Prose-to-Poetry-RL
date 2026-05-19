@@ -109,6 +109,8 @@ def check_meter(lines, meter_name):
 
 
 def check_meter_fast(lines, meter_name, rhyme_scheme):
+    if meter_name not in metre_patterns:
+        return np.nan
     error_score = 0.
     count_sylables = 0
     markup = Markup.process_text('\n'.join(lines), stress_predictor) 
