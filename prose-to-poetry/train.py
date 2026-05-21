@@ -126,7 +126,7 @@ if __name__ == "__main__":
     parser.add_argument('--from_pretrain', type=str, default='', help='Path to pretrained model checkpoint')
     parser.add_argument('--markup', type=str, default='stanzas', choices=['rhyme_markup', 'stress_markup', 'stanzas', 'rhyme_stress_markup'], help='The used markup')
 
-    parser.add_argument('--old_loss', action='store_true', help='Enable old loss using prompt and answer')
+    parser.add_argument('--new_loss', action='store_true', help='Enable old loss using prompt and answer')
 
     parser.add_argument('--train_mode', type=str, default='sft', choices=['sft', 'grpo'], help='The used training mode')
 

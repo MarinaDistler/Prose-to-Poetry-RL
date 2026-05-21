@@ -1,4 +1,4 @@
-name: poetry
+name: prose2poetry
 channels:
   - defaults
   - conda-forge
