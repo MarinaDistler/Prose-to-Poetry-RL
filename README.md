@@ -67,7 +67,7 @@ cp -r verslibre-files/stress_model/* external_code/verslibre/tmp/stress_model/
 
 ---
 
-## 🛠 Training & Evaluation
+## Training & Evaluation
 
 ### 1. Model Training
 
