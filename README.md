@@ -58,7 +58,8 @@ cp -r verslibre-files/stress_model/* external_code/verslibre/tmp/stress_model/
 │   ├── testset.csv                 # Paired prose-poetry dataset (SFT test split)
 │   ├── prosa_train_text.csv        # Prose source segments for GRPO alignment training
 │   ├── prosa_val_text.csv          # Prose source segments for GRPO alignment validation
-│   └── prosa_test_text.csv         # Prose source segments for final model assessment
+│   ├── prosa_test_text.csv         # Prose source segments for final model assessment
+│   └── prosa_remain_text.csv       # Remaining unallocated prose source segments
 ├── dataset-creation/               # Jupyter notebooks for corpus curation and automated metrics analysis
 ├── external_code/verslibre/        # Modified version of the Koziev/verslibre analysis engine
 └── prose-to-poetry/               # Core execution scripts (Training, Generation, Reward functions)
