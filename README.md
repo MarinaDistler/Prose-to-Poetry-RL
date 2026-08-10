@@ -4,6 +4,9 @@ This project focuses on transforming Russian **prose** into **structured poetry*
 
 The core architecture leverages Large Language Models (Qwen) optimized via supervised fine-tuning (SFT) and Group Relative Policy Optimization (GRPO) reinforcement learning,  to closely control rhythm, rhyme, and structural constraints.
 
+A full description of the methodology, experiments, results, and conclusions of this project is available in my Master's thesis: [Преобразование прозаического текста в стихотворную форму с использованием больших языковых моделей](https://www.hse.ru/edu/vkr/1161668381)
+ — HSE University, 2026.
+
 > **Project Lineage:** This repository is an advanced, developed version of the original [Prose-to-Poetry](https://github.com/MarinaDistler/Prose-to-Poetry) project (which focused on the  impact of rhyme and stress markup). This current iteration expands the framework by introducing  reinforcement learning  pipeline.
 
 ---
